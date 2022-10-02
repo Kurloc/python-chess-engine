@@ -1,5 +1,5 @@
 from Game.Pieces.IPiece import IPiece
-from Pathfinding.Vector2 import Vector2
+from Game.Pathfinding.Vector2 import Vector2
 
 
 class PathFindingTile:

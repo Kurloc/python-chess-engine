@@ -5,7 +5,7 @@ from Game.Pieces.IPiece import WinConditions
 from Game.PrintDebugger import PrintDebugger
 from Game.Pieces.Pawn import Pawn
 from Game.Tile.TileColors import TileColors
-from Pathfinding.Vector2 import Vector2
+from Game.Pathfinding.Vector2 import Vector2
 
 
 class TestPathfinding(unittest.TestCase):

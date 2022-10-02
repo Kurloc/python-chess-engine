@@ -1,8 +1,8 @@
 from typing import Dict, Tuple
 
 from Game.Pieces.IPiece import IPiece
-from Pathfinding.PathfindingTile import PathFindingTile
-from Pathfinding.Vector2 import Vector2
+from Game.Pathfinding.PathfindingTile import PathFindingTile
+from Game.Pathfinding.Vector2 import Vector2
 
 
 class PlayerPathDict:

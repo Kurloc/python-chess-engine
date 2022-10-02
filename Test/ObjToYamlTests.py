@@ -4,7 +4,7 @@ from Game.Board import Board
 from Game.PrintDebugger import PrintDebugger
 from Game.Pieces.Pawn import Pawn
 from Pathfinding.Pathfinder import PathFinder
-from Pathfinding.Vector2 import Vector2
+from Game.Pathfinding.Vector2 import Vector2
 
 
 class ObjToYamlTests(unittest.TestCase):

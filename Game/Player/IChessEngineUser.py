@@ -4,8 +4,8 @@ from typing import Dict, Tuple
 from Game.Player.PlayerPathDict import PlayerPathDict
 from Game.Pieces.IPiece import MoveResult, AttackResult
 from Game.Tile.Tile import Tile
-from Pathfinding.PathfindingTile import PathFindingTile
-from Pathfinding.Vector2 import Vector2
+from Game.Pathfinding.PathfindingTile import PathFindingTile
+from Game.Pathfinding.Vector2 import Vector2
 
 
 class IChessEngineUser(abc.ABC):

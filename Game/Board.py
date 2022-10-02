@@ -13,8 +13,8 @@ from Game.Player.PlayerStartPositions import PlayerStartPositions
 from Game.Player.Team import Team
 from Game.Tile.Tile import Tile
 from Game.Tile.TileColors import TileColors
-from Pathfinding.PathfindingTile import PathFindingTile
-from Pathfinding.Vector2 import Vector2
+from Game.Pathfinding.PathfindingTile import PathFindingTile
+from Game.Pathfinding.Vector2 import Vector2
 
 class Board:
     teams: [Team] = [Team(TileColors.WHITE, PlayerStartPositions.TOP),

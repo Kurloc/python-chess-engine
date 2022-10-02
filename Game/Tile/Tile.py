@@ -1,6 +1,6 @@
 from Game.Pieces.IPiece import IPiece
 from Game.Tile.TileColors import TileColors
-from Pathfinding.Vector2 import Vector2
+from Game.Pathfinding.Vector2 import Vector2
 
 class Tile:
     tile_color: TileColors

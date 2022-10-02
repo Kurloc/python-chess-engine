@@ -5,8 +5,8 @@ from typing import Dict, Tuple
 from Game.Board import Board
 from Game.Pieces.IPiece import MoveResult
 from Game.Tile.Tile import Tile
-from Pathfinding.PathfindingTile import PathFindingTile
-from Pathfinding.Vector2 import Vector2
+from Game.Pathfinding.PathfindingTile import PathFindingTile
+from Game.Pathfinding.Vector2 import Vector2
 
 
 class PrintDebugger:

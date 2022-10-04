@@ -1,15 +1,16 @@
 import inspect
 import types
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
-from Game.Board import Board
 from Game.Pieces.IPiece import MoveResult
+from Game.Player.PlayerPathDict import PlayerPathDict
 from Game.Tile.Tile import Tile
 from Game.Pathfinding.PathfindingTile import PathFindingTile
 from Game.Pathfinding.Vector2 import Vector2
 
 
 class PrintDebugger:
+    tab = '  '
     chess_piece_map = {
         "1_1": "P",
         "1_2": "R",
@@ -26,7 +27,7 @@ class PrintDebugger:
     }
 
     @staticmethod
-    def print_board(board: Board):
+    def print_board(board: Dict[Tuple[int, int], Tile], board_size: Tuple[int, int]):
         """
           ╔╗ ╔╗ ╦ ╦ ╔═╗ ╔═
           ║╠═╣║ ╚╦╝ ╠═╝ ╠═
@@ -50,30 +51,33 @@ class PrintDebugger:
         ═╬═╬═╬═╬═╬═╬═╬═╬═╣═
         7║R║N║B║Q║K║B║N║R║
 
+        :param board_size:
         :param board:
         :return:
         """
+        max_x = board_size[0]
+        max_y = board_size[1]
+
         print(" ║", end="")
-        x_len = board.game_board_size[0]
-        for x in range(x_len):
+        for x in range(max_x):
             print(str(x) + "║", end="")
         print()
         print("═╬═", end="")
-        for x in range(x_len):
-            if x != x_len - 1:
+        for x in range(max_x):
+            if x != max_x - 1:
                 print("╬═", end="")
             else:
                 print("╬═", end="")
         print()
 
-        for y in range(board.game_board_size[0]):
+        for y in range(max_x):
             xSepStr = "═╬"
             xStr = ""
-            for x in range(board.game_board_size[1]):
+            for x in range(max_y):
                 if x == 0:
                     xStr += str(y) + "║"
 
-                tile = board.map[Vector2(x, y).get_tuple()]
+                tile = board[Vector2(x, y).get_tuple()]
                 printable_chess_piece = " "
                 if tile.piece is not None:
                     chess_piece = str(tile.piece.chess_piece.value)
@@ -81,62 +85,105 @@ class PrintDebugger:
                     printable_chess_piece = str(PrintDebugger.chess_piece_map["{0}_{1}".format(color, chess_piece)])
 
                 xSepStr += "═"
-                xSepStr += ("╬" if x + 1 < x_len else "╣")
+                xSepStr += ("╬" if x + 1 < max_x else "╣")
                 xStr += printable_chess_piece if tile.piece is not None else " "
-                xStr += "║" if x != x_len - 1 else ""
+                xStr += "║" if x != max_x - 1 else ""
             if y != 0:
                 print(xSepStr + "═")
             print(xStr + "║")
         print()
 
     @staticmethod
-    def print_paths(paths: Dict[Tuple[int, int], Dict[Tuple[int, int], PathFindingTile]], starting_tile: Tile) -> None:
-        tab = '  '
+    def print_all_player_moves(paths: Dict[Tuple[int, int], PlayerPathDict]) -> None:
+        tab = PrintDebugger.tab
+        print('ALL_PLAYER_PATHS:')
+        for key in paths:
+            value = paths[key]
+            print(tab * 2 + 'MOVE_DIRECTIONS:')
+            for k in value.paths:
+                v = value.paths[k]
+                print(tab * 3 + '- ' + str(k[0]) + ', ' + str(k[1]))
+                if v is None or len(v) == 0:
+                    print(tab * 4 + '- NO AVAILABLE MOVES')
+                for kk in v:
+                    vv = v[kk]
+                    print(tab * 4 + '- ' + vv.position.get_tuple().__str__())
+                    print(tab * 5 + 'IS_BLOCKED: ' + str(vv.is_blocked))
+                    print(tab * 5 + 'IS_ENEMY: ' + str(vv.is_enemy))
+                print()
+
+    @staticmethod
+    def print_piece_path_dict(path_dict: PlayerPathDict) -> None:
+        print('PATH_DICT:')
+        print(PrintDebugger.tab + 'PIECE: ' + path_dict.piece.chess_piece.name)
+        print(PrintDebugger.tab + 'POSITION: ' + path_dict.position.get_tuple().__str__())
+        print(PrintDebugger.tab + 'PATHS: ')
+        for k in path_dict.paths:
+            v = path_dict.paths[k]
+            print(PrintDebugger.tab * 2 + '- ' + str(k[0]) + ', ' + str(k[1]))
+            if v is None or len(v) == 0:
+                print(PrintDebugger.tab * 3 + '- NO AVAILABLE MOVES')
+            for kk in v:
+                vv = v[kk]
+                print(PrintDebugger.tab * 3 + '- ' + vv.position.get_tuple().__str__())
+                print(PrintDebugger.tab * 4 + 'IS_BLOCKED: ' + str(vv.is_blocked))
+                print(PrintDebugger.tab * 4 + 'IS_ENEMY: ' + str(vv.is_enemy))
+
+    @staticmethod
+    def print_paths(
+            paths: Dict[Tuple[int, int], Dict[Tuple[int, int], PathFindingTile]],
+            starting_tile: Optional[Tile]) -> None:
         print('PATH_FINDING_RESULTS:')
-        print(tab * 1 + 'GAME_PIECE: ' + str(starting_tile.piece.chess_piece))
-        print(tab * 1 + 'STARTING_POSITION: ' + str(starting_tile.position))
-        print(tab * 2 + 'MOVE_DIRECTIONS:')
+        if starting_tile is not None:
+            print(PrintDebugger.tab * 1 + 'GAME_PIECE: ' + str(starting_tile.piece.chess_piece))
+            print(PrintDebugger.tab * 1 + 'STARTING_POSITION: ' + str(starting_tile.position))
+
+        print(PrintDebugger.tab * 2 + 'MOVE_DIRECTIONS:')
         for key, value in paths.items():
-            print(tab * 3 + '- ' + str(key))
+            print(PrintDebugger.tab * 3 + '- ' + str(key))
             if value is None or len(value) == 0:
-                print(tab * 4 + '- NO AVAILABLE MOVES')
+                print(PrintDebugger.tab * 4 + '- NO AVAILABLE MOVES')
             for k in value:
                 v = value[k]
-                print(tab * 4 + '- ' + v.position.get_tuple().__str__())
-                print(tab * 5 + 'IS_BLOCKED: ' + str(v.isBlocked))
-                print(tab * 5 + 'IS_ENEMY: ' + str(v.isEnemy))
+                print(PrintDebugger.tab * 4 + '- ' + v.position.get_tuple().__str__())
+                print(PrintDebugger.tab * 5 + 'IS_BLOCKED: ' + str(v.is_blocked))
+                print(PrintDebugger.tab * 5 + 'IS_ENEMY: ' + str(v.is_enemy))
             print()
 
     @staticmethod
     def print_move_results(move_result: MoveResult) -> None:
-        tab = '  '
         print('MOVE_RESULTS:')
-        print(tab + 'SUCCESS: ' + str(move_result.success))
-        print(tab + 'BOARD_EVENT_TYPE: ' + str(move_result.board_event_type))
-        print(tab + 'GAME_STATE: ')
-        print(tab * 2 + 'GAME_OVER: ' + str(move_result.game_state.game_over))
+        print(PrintDebugger.tab + 'SUCCESS: ' + str(move_result.success))
+        print(PrintDebugger.tab + 'BOARD_EVENT_TYPE: ' + str(move_result.board_event_type))
+        print(PrintDebugger.tab + 'GAME_STATE: ')
+        print(PrintDebugger.tab * 2 + 'GAME_OVER: ' + str(move_result.game_state.game_over))
         if move_result.game_state.game_over:
-            print(tab * 2 + 'WINNER: ' + str(move_result.game_state.winning_team.color.name))
-            print(tab * 2 + 'WIN_CONDITION: ' + str(move_result.game_state.win_condition.name))
-            print(tab * 2 + 'WINNING_TILE_POS: ' + str(move_result.game_state.winning_tile_pos.get_tuple()))
+            print(PrintDebugger.tab * 2 + 'WINNER: ' + str(move_result.game_state.winning_team.color.name))
+            print(PrintDebugger.tab * 2 + 'WIN_CONDITION: ' + str(move_result.game_state.win_condition.name))
+            print(PrintDebugger.tab * 2 + 'WINNING_TILE_POS: ' + str(move_result.game_state.winning_tile_pos.get_tuple()))
 
-        print(tab + 'PIECES_INVOLVED: ')
+        print(PrintDebugger.tab + 'PIECES_INVOLVED: ')
         for value in move_result.pieces_involved:
-            print(tab * 1 + ' - PIECE: ')
-            print(tab * 3 + 'CHESS_PIECE: ' + str(value.piece.chess_piece.name))
-            print(tab * 3 + 'TEAM: ' + str(value.piece.team.color.name))
+            print(PrintDebugger.tab * 1 + ' - PIECE: ')
+            print(PrintDebugger.tab * 3 + 'CHESS_PIECE: ' + str(value.piece.chess_piece.name))
+            print(PrintDebugger.tab * 3 + 'TEAM: ' + str(value.piece.team.color.name))
 
-            print(tab * 2 + ' STARTING_POSITION: ')
-            print(tab * 3 + 'X: ' + str(value.starting_position.x))
-            print(tab * 3 + 'Y: ' + str(value.starting_position.y))
+            print(PrintDebugger.tab * 2 + ' STARTING_POSITION: ')
+            if value.starting_position is not None:
+                print(PrintDebugger.tab * 3 + 'X: ' + str(value.starting_position.x))
+                print(PrintDebugger.tab * 3 + 'Y: ' + str(value.starting_position.y))
+            else:
+                print(PrintDebugger.tab * 3 + ' - NO_STARTING_POSITION')
 
-            print(tab * 2 + ' ENDING_POSITION: ')
-            print(tab * 3 + 'X: ' + str(value.ending_position.x))
-            print(tab * 3 + 'Y: ' + str(value.ending_position.y))
+            print(PrintDebugger.tab * 2 + ' ENDING_POSITION: ')
+            if value.ending_position is not None:
+                print(PrintDebugger.tab * 3 + 'X: ' + str(value.ending_position.x))
+                print(PrintDebugger.tab * 3 + 'Y: ' + str(value.ending_position.y))
+            else:
+                print(PrintDebugger.tab * 3 + ' - NO_ENDING_POSITION')
 
     @staticmethod
     def obj_to_yaml(obj: object, tab_index: int = None):
-        tab = '  '
         CALLABLES = types.FunctionType, types.MethodType
         items = []
         obj_type = type(obj)
@@ -155,25 +202,25 @@ class PrintDebugger:
                 if not isinstance(value, CALLABLES):
                     value_type = type(value)
                     if value_type == list:
-                        print(tab * (tab_index + 1) + key + ':')
+                        print(PrintDebugger.tab * (tab_index + 1) + key + ':')
                         for item in value:
                             PrintDebugger.obj_yaml(item)
                     else:
-                        print(tab * (tab_index + 1) + key + ": " + str(value))
+                        print(PrintDebugger.tab * (tab_index + 1) + key + ": " + str(value))
         else:
             for value in items:
                 if not isinstance(value, CALLABLES):
                     value_type = type(value)
                     if value_type == list:
-                        print(tab * (tab_index + 1) + str(value_type) + ':')
+                        print(PrintDebugger.tab * (tab_index + 1) + str(value_type) + ':')
                         for item in value:
                             PrintDebugger.obj_yaml(item)
                     else:
-                        print(tab * (tab_index + 1) + str(value_type) + ": " + str(value))
+                        print(PrintDebugger.tab * (tab_index + 1) + str(value_type) + ": " + str(value))
 
     @staticmethod
     def obj_yaml(item: object, tab_index: int = None):
-        tab = '  '
+        tab = PrintDebugger.tab
         primitives = (int, float, str, bool)
         CALLABLES = types.FunctionType, types.MethodType
         inner_value_type = type(item)

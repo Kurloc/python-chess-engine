@@ -33,10 +33,12 @@ class IPiece(abc.ABC):
 
 class BoardEventTypes(Enum):
     INVALID_MOVE = 0
-    PIECE_BLOCKED_BY_ALLY = 1
-    PIECE_BLOCKED_BY_ENEMY = 1
-    PIECE_MOVED_TO_SPACE = 2
-    PIECE_MOVED_TO_SPACE_AND_KILLED = 3
+    INVALID_MOVE_PIECE_CANNOT_DO_MOVE = 1
+    INVALID_MOVE_PIECE_CANNOT_DO_THIS_ATTACK = 2
+    PIECE_BLOCKED_BY_ALLY = 3
+    PIECE_BLOCKED_BY_ENEMY = 4
+    PIECE_MOVED_TO_SPACE = 5
+    PIECE_MOVED_TO_SPACE_AND_KILLED = 6
 
 
 class BoardEventPiece:
@@ -69,6 +71,21 @@ class BoardEvent:
         self.turn_index = turn_index
 
 
+class WinConditions(Enum):
+    MATE = 0
+    CHECKMATE = 1
+    STALEMATE = 2
+    RESIGNATION = 3
+    TIME_OUT = 4
+
+
+class GameState:
+    game_over: bool = False
+    winning_team: Union[Team, None] = None
+    win_condition: Union[WinConditions, None] = None
+    winning_tile_pos: Union[Vector2, None] = None
+
+
 class AttackResult:
     success: bool = False
     board_event_type: BoardEventTypes
@@ -84,18 +101,6 @@ class AttackResult:
         self.success = success
         self.board_event_type = board_event_type
         self.pieces_involved = pieces_involved
-
-class WinConditions(Enum):
-    CHECKMATE = 0
-    STALEMATE = 1
-    RESIGNATION = 2
-    TIME_OUT = 3
-
-class GameState:
-    game_over: bool = False
-    winning_team: Union[Team, None] = None
-    win_condition: Union[WinConditions, None] = None
-    winning_tile_pos: Union[Vector2, None] = None
 
 
 class MoveResult(AttackResult):

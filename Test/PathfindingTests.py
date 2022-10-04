@@ -24,21 +24,76 @@ class TestPathfinding(unittest.TestCase):
     def test_findPaths_pawn_forward(self):
         board: Board = Board()
         test_vector = board.map[(0, 1)]
+        starting_piece = test_vector.piece
+
+        board.map[(1, 2)].piece = Pawn(board.teams[1])
+
+        pathfinding_results = board.FindPaths(test_vector)
+
+        print("Turn 1")
+        PrintDebugger.print_board(board.map, board.game_board_size)
+        PrintDebugger.print_paths(pathfinding_results, test_vector)
+
+        x0y2 = pathfinding_results[(1, 1)][(1, 2)]
+        self.assertEqual(x0y2.is_enemy, True)
+        self.assertEqual(x0y2.is_blocked, True)
+
+        move_result = board.move_piece(test_vector, Vector2(1, 2), pathfinding_results)
+        PrintDebugger.print_move_results(move_result)
+
+        print("Turn 2")
+        PrintDebugger.print_board(board.map, board.game_board_size)
+
+        self.assertTrue(move_result.success)
+        self.assertTrue(len(move_result.pieces_involved) == 2)
+        self.assertTrue(move_result)
+        self.assertEqual(board.map[(1, 2)].piece, starting_piece)
+
+    def test_findPaths_pawn_cant_kill_in_front(self):
+        board: Board = Board()
+        test_vector = board.map[(0, 1)]
+        starting_piece = Pawn(board.teams[1])
+
+        board.map[(0, 3)].piece = starting_piece
+
+        pathfinding_results = board.FindPaths(test_vector)
+
+        print("Turn 1")
+        PrintDebugger.print_board(board.map, board.game_board_size)
+        PrintDebugger.print_paths(pathfinding_results, test_vector)
+
+        x0y2 = pathfinding_results[(0, 1)][(0, 3)]
+        self.assertEqual(x0y2.is_enemy, True)
+        self.assertEqual(x0y2.is_blocked, True)
+
+        move_result = board.move_piece(test_vector, Vector2(0, 3), pathfinding_results)
+        PrintDebugger.print_move_results(move_result)
+
+        print("Turn 2")
+        PrintDebugger.print_board(board.map, board.game_board_size)
+
+        self.assertFalse(move_result.success)
+        self.assertTrue(move_result)
+        self.assertEqual(board.map[(0, 3)].piece, starting_piece)
+
+    def test_findPaths_pawn_diagonal_attack(self):
+        board: Board = Board()
+        test_vector = board.map[(0, 1)]
         board.map[(0, 3)].piece = Pawn(board.teams[1])
 
         pathfinding_results = board.FindPaths(test_vector)
 
-        PrintDebugger.print_board(board)
+        PrintDebugger.print_board(board.map, board.game_board_size)
         PrintDebugger.print_paths(pathfinding_results, test_vector)
 
         finalPosition = pathfinding_results[(0, 1)][(0, 3)]
         x0y2 = pathfinding_results[(0, 1)][(0, 2)]
 
-        self.assertEqual(x0y2.isEnemy, False)
-        self.assertEqual(x0y2.isBlocked, False)
+        self.assertEqual(x0y2.is_enemy, False)
+        self.assertEqual(x0y2.is_blocked, False)
 
-        self.assertEqual(finalPosition.isEnemy, True)
-        self.assertEqual(finalPosition.isBlocked, True)
+        self.assertEqual(finalPosition.is_enemy, True)
+        self.assertEqual(finalPosition.is_blocked, True)
 
     def test_findPaths_pawn_move_forward(self):
         board: Board = Board()
@@ -56,7 +111,7 @@ class TestPathfinding(unittest.TestCase):
         pathfinding_results_3 = board.FindPaths(test_tile_3)
 
         print("Turn 1")
-        PrintDebugger.print_board(board)
+        PrintDebugger.print_board(board.map, board.game_board_size)
 
         move_results_0 = board.move_piece(test_tile_0, Vector2(0, 3), pathfinding_results_0)
         move_results_1 = board.move_piece(test_tile_1, Vector2(1, 3), pathfinding_results_1)
@@ -69,7 +124,7 @@ class TestPathfinding(unittest.TestCase):
         self.assertEqual(board.map[test_tile_0.position.get_tuple()].piece, None)
 
         print("Turn 2")
-        PrintDebugger.print_board(board)
+        PrintDebugger.print_board(board.map, board.game_board_size)
 
     def test_findPaths_checkmate(self):
         board: Board = Board()
@@ -82,15 +137,19 @@ class TestPathfinding(unittest.TestCase):
         snd_path_results = board.FindPaths(snd_move)
         third_path_results = board.FindPaths(third_move)
 
-        board.move_piece(fst_move, Vector2(5, 5), fst_path_results)
-        board.move_piece(snd_move, Vector2(4, 2), snd_path_results)
-        board.move_piece(third_move, Vector2(6, 4), third_path_results)
+        fst_move_results = board.move_piece(fst_move, Vector2(5, 5), fst_path_results)
+        snd_move_results = board.move_piece(snd_move, Vector2(4, 2), snd_path_results)
+        third_move_results = board.move_piece(third_move, Vector2(6, 4), third_path_results)
+
+        PrintDebugger.print_move_results(fst_move_results)
+        PrintDebugger.print_move_results(snd_move_results)
+        PrintDebugger.print_move_results(third_move_results)
 
         fourth_path_results = board.FindPaths(fourth_move)
         fourth_move_results = board.move_piece(fourth_move, Vector2(7, 4), fourth_path_results)
 
         print("Turn 4")
-        PrintDebugger.print_board(board)
+        PrintDebugger.print_board(board.map, board.game_board_size)
         PrintDebugger.print_move_results(fourth_move_results)
 
         self.assertTrue(fourth_move_results.success)

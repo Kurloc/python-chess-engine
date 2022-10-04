@@ -117,37 +117,38 @@ class Board:
 
         moving_piece = BoardEventPiece(starting_tile.piece, starting_tile.position, starting_tile.position)
         if result_for_move is None:
-            return AttackResult(False, BoardEventTypes.INVALID_MOVE, [moving_piece])
+            return AttackResult(False, BoardEventTypes.INVALID_MOVE_PIECE_CANNOT_DO_MOVE, [moving_piece])
 
-        if result_for_move is not None:
-            piece_on_target_pos = BoardEventPiece(
-                self.map[result_for_move.position.get_tuple()].piece,
-                position_to_move_to
-            )
+        if result_for_move.is_attackable is False and result_for_move.piece is not None:
+            return AttackResult(False, BoardEventTypes.INVALID_MOVE_PIECE_CANNOT_DO_THIS_ATTACK, [moving_piece])
 
-            if result_for_move.isBlocked:
-                if result_for_move.isEnemy:
-                    moving_piece.ending_position = position_to_move_to
-                    pieces_involved = [
-                        moving_piece,
-                        piece_on_target_pos
-                    ]
-                    return AttackResult(True, BoardEventTypes.PIECE_MOVED_TO_SPACE_AND_KILLED, pieces_involved)
+        piece_on_target_pos = BoardEventPiece(
+            self.map[result_for_move.position.get_tuple()].piece,
+            position_to_move_to
+        )
 
-                if result_for_move.isEnemy is False:
-                    pieces_involved = [
-                        moving_piece,
-                        piece_on_target_pos
-                    ]
-                    return AttackResult(False, BoardEventTypes.PIECE_BLOCKED_BY_ALLY, pieces_involved)
+        if result_for_move.is_blocked:
+            if result_for_move.is_enemy:
+                moving_piece.ending_position = position_to_move_to
+                pieces_involved = [
+                    moving_piece,
+                    piece_on_target_pos
+                ]
+                return AttackResult(True, BoardEventTypes.PIECE_MOVED_TO_SPACE_AND_KILLED, pieces_involved)
+            else:
+                pieces_involved = [
+                    moving_piece,
+                    piece_on_target_pos
+                ]
+                return AttackResult(False, BoardEventTypes.PIECE_BLOCKED_BY_ALLY, pieces_involved)
 
-            moving_piece.ending_position = position_to_move_to
-            return AttackResult(True, BoardEventTypes.PIECE_MOVED_TO_SPACE, [moving_piece])
+        moving_piece.ending_position = position_to_move_to
+        return AttackResult(True, BoardEventTypes.PIECE_MOVED_TO_SPACE, [moving_piece])
 
     def check_for_win(self) -> Tuple[bool, Union[Tile, None], Union[WinConditions, None]]:
         (is_check_mate, tile_check_mating) = self.scan_for_check_mates()
         if is_check_mate:
-            return True, tile_check_mating, WinConditions.CHECKMATE,
+            return True, tile_check_mating, WinConditions.CHECKMATE
 
         return False, None, None
 
@@ -161,7 +162,7 @@ class Board:
                     result_values = path_finding_results[vector2]
                     for move_key in result_values:
                         move_value = result_values[move_key]
-                        if type(move_value.piece) == King and move_value.isEnemy:
+                        if type(move_value.piece) == King and move_value.is_enemy:
                             return True, value
 
         return False, None
@@ -173,6 +174,39 @@ class Board:
         move_directions = piece.move_directions
         attack_directions = piece.attack_directions
         attack_directions_len = len(piece.attack_directions)
+
+        if len(attack_directions) > 0:
+            inner_isBlocked = False
+            inner_isEnemy = False
+            for attack_dir in attack_directions:
+                tiles: Dict[Tuple[int, int], PathFindingTile] = dict()
+                for range_i in range(attack_dir.maxDistance):
+                    attack_Position = currentTile.position + (attack_dir.vector2 * (range_i + 1))
+                    if attack_Position.x > max_x or attack_Position.x < 0:
+                        break
+
+                    if attack_Position.y > max_y or attack_Position.y < 0:
+                        break
+
+                    attack_tile = self.map[attack_Position.get_tuple()]
+                    if attack_tile.piece is not None:
+                        inner_isBlocked = True
+                        if attack_tile.piece.team != currentTile.piece.team:
+                            inner_isEnemy = True
+
+                    tiles[attack_Position.get_tuple()] = PathFindingTile(
+                        True,
+                        inner_isBlocked,
+                        inner_isEnemy,
+                        attack_Position,
+                        attack_tile.piece
+                    )
+
+                    if inner_isBlocked and piece.is_blockable:
+                        break
+
+                moves[attack_dir.vector2.get_tuple()] = tiles
+
         for moveDirection in move_directions:
             # Bishop and Rook have maxDistance = int.MaxValue
             # Clamp the max distance to the board size
@@ -191,34 +225,6 @@ class Board:
                 nextTile = self.map[nextPosition.get_tuple()]
                 isBlocked = False
                 isEnemy = False
-                if len(attack_directions) > 0:
-                    inner_isBlocked = False
-                    inner_isEnemy = False
-                    for attack_dir in attack_directions:
-                        for range_i in range(attack_dir.maxDistance):
-                            attack_Position = nextPosition + (attack_dir.vector2 * (range_i + 1))
-                            if attack_Position.x > max_x or attack_Position.x < 0:
-                                break
-
-                            if attack_Position.y > max_y or attack_Position.y < 0:
-                                break
-
-                            attack_tile = self.map[attack_Position.get_tuple()]
-                            if attack_tile.piece is not None:
-                                inner_isBlocked = True
-                                if attack_tile.piece.team != nextTile.piece.team:
-                                    inner_isEnemy = True
-
-                            tiles[nextPosition.get_tuple()] = PathFindingTile(
-                                True,
-                                inner_isBlocked,
-                                inner_isEnemy,
-                                attack_Position,
-                                attack_tile.piece
-                            )
-
-                            if inner_isBlocked and piece.is_blockable:
-                                break
 
                 if nextTile.piece is not None:
                     isBlocked = True

@@ -10,7 +10,8 @@ from Game.Pathfinding.Vector2 import Vector2
 class Knight(IPiece):
     __move_directions: List[Move]
 
-    def __init__(self, team: Team):
+    def __init__(self, team: Team, piece_id: int = None):
+        super().__init__(team, piece_id)
         """
         |0|1|2|3|4|5|6|7|8|
         |1| | | | | | | | |
@@ -23,7 +24,6 @@ class Knight(IPiece):
         |8| | | | | | | | |
         :param team:
         """
-        super().__init__(team, ChessPieces.KNIGHT)
         self.__move_directions = []
         self.__move_directions.append(Move(Vector2.Up() * 2 + Vector2.Left()))
         self.__move_directions.append(Move(Vector2.Up() * 2 + Vector2.Right()))
@@ -35,9 +35,9 @@ class Knight(IPiece):
         self.__move_directions.append(Move(Vector2.Down() * 2 + Vector2.Right()))
 
     @property
-    def move_directions(self) -> List[Move]:
-        return self.__move_directions
+    def chess_piece(self) -> ChessPieces:
+        return ChessPieces.KNIGHT
 
     @property
-    def attack_directions(self) -> List[Move]:
-        return []
+    def move_directions(self) -> List[Move]:
+        return self.__move_directions

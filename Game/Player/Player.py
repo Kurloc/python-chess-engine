@@ -1,3 +1,4 @@
+from Game.Board import Board
 from Game.Player.ConsoleEngineUser import ConsoleEngineUser
 from Game.Player.IChessEngineUser import IChessEngineUser
 from Game.Player.Team import Team
@@ -13,9 +14,10 @@ class Player:
                  name: str,
                  team: Team,
                  player_id: int,
+                 board: Board,
                  chessEngineUser: IChessEngineUser = None):
         if chessEngineUser is None:
-            chessEngineUser = ConsoleEngineUser()
+            chessEngineUser = ConsoleEngineUser(board)
 
         self.id = player_id
         self.team = team

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
+
+@dataclass
 class Vector2:
     x: int
     y: int
@@ -61,5 +65,3 @@ class Vector2:
     @staticmethod
     def DownRight() -> Vector2:
         return Vector2(1, -1)
-
-

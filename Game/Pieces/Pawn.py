@@ -11,18 +11,27 @@ from Game.Pathfinding.Vector2 import Vector2
 class Pawn(IPiece):
     __move_directions: List[Move]
 
-    def __init__(self, team: Team):
-        super().__init__(team, ChessPieces.PAWN)
-        self.__move_directions = []
+    def __init__(self, team: Team, piece_id: int = None):
+        super().__init__(team, piece_id)
         if team.side == PlayerStartPositions.TOP:
-            self.__move_directions.append(Move(Vector2.Up(), 2))
+            self.__move_directions = [
+                Move(Vector2.Up(), 1, False),
+                Move(Vector2.Up() * 2, 1, False, is_initial_move=True),
+                Move(Vector2.UpLeft(), 1, True, True),
+                Move(Vector2.UpRight(), 1, True, True),
+            ]
         else:
-            self.__move_directions.append(Move(Vector2.Down(), 2))
+            self.__move_directions = [
+                Move(Vector2.Down(), 1, False),
+                Move(Vector2.Down() * 2, 1, False, is_initial_move=True),
+                Move(Vector2.DownLeft(), 1, True, True),
+                Move(Vector2.DownRight(), 1, True, True),
+            ]
+
+    @property
+    def chess_piece(self) -> ChessPieces:
+        return ChessPieces.PAWN
 
     @property
     def move_directions(self) -> List[Move]:
         return self.__move_directions
-
-    @property
-    def attack_directions(self) -> List[Move]:
-        return [Move(Vector2.UpLeft()), Move(Vector2.UpRight())]

@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
-class PlayerStartPositions(Enum):
+class PlayerStartPositions(IntEnum):
     TOP = 0,
     BOTTOM = 1

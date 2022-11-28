@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
-class TileColors(Enum):
+class TileColors(IntEnum):
     BLACK = 1
     WHITE = 2

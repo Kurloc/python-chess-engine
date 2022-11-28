@@ -1,7 +1,8 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class ChessPieces(Enum):
+class ChessPieces(IntEnum):
+    NONE = 0
     PAWN = 1
     ROOK = 2
     KNIGHT = 3

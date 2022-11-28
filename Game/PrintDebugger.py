@@ -2,8 +2,16 @@ import inspect
 import types
 from typing import Dict, Tuple, Optional
 
-from Game.Pieces.IPiece import MoveResult
+from Game.Pathfinding.AiMoveTreeLeaf import AiMoveTreeLeaf
+from Game.Pieces.Bishop import Bishop
+from Game.Pieces.IPiece import MoveResult, IPiece
+from Game.Pieces.King import King
+from Game.Pieces.Knight import Knight
+from Game.Pieces.Pawn import Pawn
+from Game.Pieces.Queen import Queen
+from Game.Pieces.Rook import Rook
 from Game.Player.PlayerPathDict import PlayerPathDict
+from Game.Player.Team import Team
 from Game.Tile.Tile import Tile
 from Game.Pathfinding.PathfindingTile import PathFindingTile
 from Game.Pathfinding.Vector2 import Vector2
@@ -11,6 +19,18 @@ from Game.Pathfinding.Vector2 import Vector2
 
 class PrintDebugger:
     tab = '  '
+    move_map_name = {
+        Vector2(0, 2).get_tuple(): 'Initial Up 2',
+        Vector2.Up().get_tuple(): 'Up',
+        Vector2.Down().get_tuple(): 'Down',
+        Vector2(0, -2).get_tuple(): 'Initial Down 2',
+        Vector2.Right().get_tuple(): 'Right',
+        Vector2.Left().get_tuple(): 'Left',
+        Vector2.UpLeft().get_tuple(): 'UpLeft',
+        Vector2.UpRight().get_tuple(): 'UpRight',
+        Vector2.DownLeft().get_tuple(): 'DownLeft',
+        Vector2.DownRight().get_tuple(): 'DownRight'
+    }
     chess_piece_map = {
         "1_1": "P",
         "1_2": "R",
@@ -24,6 +44,34 @@ class PrintDebugger:
         "2_4": "b",
         "2_5": "q",
         "2_6": "k"
+    }
+    reverse_chess_piece_map = {
+        "1_p": lambda teams: Pawn(teams[0]),
+        "1_r": lambda teams: Rook(teams[0]),
+        "1_n": lambda teams: Knight(teams[0]),
+        "1_b": lambda teams: Bishop(teams[0]),
+        "1_q": lambda teams: Queen(teams[0]),
+        "1_k": lambda teams: King(teams[0]),
+        "2_P": lambda teams: Pawn(teams[1]),
+        "2_R": lambda teams: Rook(teams[1]),
+        "2_N": lambda teams: Knight(teams[1]),
+        "2_B": lambda teams: Bishop(teams[1]),
+        "2_Q": lambda teams: Queen(teams[1]),
+        "2_K": lambda teams: King(teams[1])
+    }
+    list_to_python_chess_piece_map = {
+        "1_1": "Pawn(w)",
+        "1_2": "Rook(w)",
+        "1_3": "Knight(w)",
+        "1_4": "Bishop(w)",
+        "1_5": "Queen(w)",
+        "1_6": "King(w)",
+        "2_1": "Pawn(b)",
+        "2_2": "Rook(b)",
+        "2_3": "Knight(b)",
+        "2_4": "Bishop(b)",
+        "2_5": "Queen(b)",
+        "2_6": "King(b)"
     }
 
     @staticmethod
@@ -102,12 +150,13 @@ class PrintDebugger:
             print(tab * 2 + 'MOVE_DIRECTIONS:')
             for k in value.paths:
                 v = value.paths[k]
-                print(tab * 3 + '- ' + str(k[0]) + ', ' + str(k[1]))
+                print(tab * 3 + '- ' + PrintDebugger.get_vector2_direction_name(k))
                 if v is None or len(v) == 0:
                     print(tab * 4 + '- NO AVAILABLE MOVES')
                 for kk in v:
                     vv = v[kk]
                     print(tab * 4 + '- ' + vv.position.get_tuple().__str__())
+                    print(tab * 5 + 'IS_ATTACKABLE: ' + str(vv.move_can_be_used_as_an_attack))
                     print(tab * 5 + 'IS_BLOCKED: ' + str(vv.is_blocked))
                     print(tab * 5 + 'IS_ENEMY: ' + str(vv.is_enemy))
                 print()
@@ -120,19 +169,21 @@ class PrintDebugger:
         print(PrintDebugger.tab + 'PATHS: ')
         for k in path_dict.paths:
             v = path_dict.paths[k]
-            print(PrintDebugger.tab * 2 + '- ' + str(k[0]) + ', ' + str(k[1]))
+            print(PrintDebugger.tab * 2 + '- ' + PrintDebugger.get_vector2_direction_name(k))
             if v is None or len(v) == 0:
                 print(PrintDebugger.tab * 3 + '- NO AVAILABLE MOVES')
             for kk in v:
                 vv = v[kk]
                 print(PrintDebugger.tab * 3 + '- ' + vv.position.get_tuple().__str__())
+                print(PrintDebugger.tab * 5 + 'IS_ATTACKABLE: ' + str(vv.move_can_be_used_as_an_attack))
                 print(PrintDebugger.tab * 4 + 'IS_BLOCKED: ' + str(vv.is_blocked))
                 print(PrintDebugger.tab * 4 + 'IS_ENEMY: ' + str(vv.is_enemy))
 
     @staticmethod
     def print_paths(
             paths: Dict[Tuple[int, int], Dict[Tuple[int, int], PathFindingTile]],
-            starting_tile: Optional[Tile]) -> None:
+            starting_tile: Optional[Tile]
+    ) -> None:
         print('PATH_FINDING_RESULTS:')
         if starting_tile is not None:
             print(PrintDebugger.tab * 1 + 'GAME_PIECE: ' + str(starting_tile.piece.chess_piece))
@@ -146,9 +197,27 @@ class PrintDebugger:
             for k in value:
                 v = value[k]
                 print(PrintDebugger.tab * 4 + '- ' + v.position.get_tuple().__str__())
+                print(PrintDebugger.tab * 5 + 'IS_ATTACKABLE: ' + str(v.move_can_be_used_as_an_attack))
                 print(PrintDebugger.tab * 5 + 'IS_BLOCKED: ' + str(v.is_blocked))
                 print(PrintDebugger.tab * 5 + 'IS_ENEMY: ' + str(v.is_enemy))
             print()
+
+    @staticmethod
+    def print_move_tree_boardsR(move_leaf: AiMoveTreeLeaf, head: str = ''):
+        moves = move_leaf.child_ai_move
+        for key in moves:
+            value = moves[key]
+            if head == '':
+                head_str = f'{value.starting_position}-{value.ending_position}'
+            else:
+                head_str = f'{head}-{value.ending_position}'
+
+            if value.board is not None:
+                print(f'=========================={head_str}===========================')
+                print(f'value: {value.player_one}, {value.player_two}')
+                PrintDebugger.print_board(value.board.map, value.board.game_board_size)
+
+            PrintDebugger.print_move_tree_boardsR(value, head_str)
 
     @staticmethod
     def print_move_results(move_result: MoveResult) -> None:
@@ -160,7 +229,8 @@ class PrintDebugger:
         if move_result.game_state.game_over:
             print(PrintDebugger.tab * 2 + 'WINNER: ' + str(move_result.game_state.winning_team.color.name))
             print(PrintDebugger.tab * 2 + 'WIN_CONDITION: ' + str(move_result.game_state.win_condition.name))
-            print(PrintDebugger.tab * 2 + 'WINNING_TILE_POS: ' + str(move_result.game_state.winning_tile_pos.get_tuple()))
+            print(
+                PrintDebugger.tab * 2 + 'WINNING_TILE_POS: ' + str(move_result.game_state.winning_tile_pos.get_tuple()))
 
         print(PrintDebugger.tab + 'PIECES_INVOLVED: ')
         for value in move_result.pieces_involved:
@@ -185,7 +255,6 @@ class PrintDebugger:
     @staticmethod
     def obj_to_yaml(obj: object, tab_index: int = None):
         CALLABLES = types.FunctionType, types.MethodType
-        items = []
         obj_type = type(obj)
         is_list = obj_type == list
         if is_list:
@@ -246,3 +315,53 @@ class PrintDebugger:
                     PrintDebugger.obj_yaml(field, tab_index + 1)
                 else:
                     print(tab * (tab_index + 3) + str(field_name) + ": " + str(field))
+
+    @staticmethod
+    def get_vector2_direction_name(vector2: Tuple[int, int]) -> str:
+        key_exists = PrintDebugger.move_map_name[vector2] is not None
+        if key_exists:
+            return PrintDebugger.move_map_name[vector2]
+        else:
+            return str(vector2)
+
+    @staticmethod
+    def get_init_map_from_printed_board(board_str: str, teams: [Team]) -> [[IPiece]]:
+        prepped_str_list = board_str.replace("║", ",").split('\n')
+        final_str_list = []
+        for index, i in enumerate(prepped_str_list):
+            if index % 2 == 1 and index > 1:
+                items = i.split(",")[1:]
+                items_list = []
+                for char in items:
+                    if char.isalpha():
+                        if char.islower():
+                            items_list.append(PrintDebugger.reverse_chess_piece_map[f'1_{char}'](teams))
+                        elif char.isupper():
+                            items_list.append(PrintDebugger.reverse_chess_piece_map[f'2_{char}'](teams))
+                    else:
+                        items_list.append(None)
+                final_str_list.append(items_list)
+
+        return final_str_list
+
+    @staticmethod
+    def get_python_map_from_init_board_array(board: [[IPiece]]) -> str:
+        return_string = "[\n"
+
+        y = 0
+        for row in board:
+            x = 0
+            return_string += "\t["
+            for piece in row:
+                if piece is None:
+                    return_string += "None, "
+                    continue
+                return_string += PrintDebugger.list_to_python_chess_piece_map[
+                                     f'{piece.team.team_id}_{piece.chess_piece.value}'
+                                 ] + ', '
+                x += 1
+            return_string += "],\n"
+            y += 1
+
+        return_string += "]"
+        return return_string

@@ -1,4 +1,3 @@
-import traceback
 from threading import Thread
 from typing import List
 
@@ -66,52 +65,40 @@ class Engine:
                 self.__game_thread.start()
             else:
                 self.__start_game_thread()
+
         except Exception as e:
-            with open('KCE_exception.txt', 'a', encoding='utf-8') as f:
-                tb = traceback.format_exc()
-                f.writelines('errors starting game :(')
-                f.writelines(str(e))
-                f.writelines('==============================')
-                f.writelines(tb)
+            self.__board.save_replay_history()
+            raise e
 
     def stop_game(self):
         self.__is_running = False
 
     def try_stop_thread(self):
-        '''Stop the thread, if we get an exception we don't care'''
+        """Stop the thread, if we get an exception we don't care"""
         try:
             self.__game_thread.join()
         except Exception:
             return
 
     def __start_game_thread(self):
-        with open('turn.txt', 'a') as f:
-            f.write(f'Thread starting!\n')
         count = 0
-        try:
-            while self.__is_running:
-                for current_player in self.__players:
-                    with open('turn.txt', 'a') as f:
-                        f.write(f'starting turn {count} for player {current_player.team.team_id}\n')
+        while self.__is_running:
+            for current_player in self.__players:
+                move_result = self.__handle_player_move(current_player)
+                if move_result.game_state.game_over:
+                    current_player.chessEngineUser.output_board_state(
+                        self.__board.map,
+                        self.__board.game_board_size
+                    )
+                    current_player.chessEngineUser.output_player_victory(
+                        current_player.id,
+                        move_result,
+                        self.__board
+                    )
+                    self.__is_running = False
+                    break
 
-                        move_result = self.__handle_player_move(current_player)
-                        if move_result.game_state.game_over:
-                            current_player.chessEngineUser.output_board_state(
-                                self.__board.map,
-                                self.__board.game_board_size
-                            )
-                            current_player.chessEngineUser.output_player_victory(
-                                current_player.id,
-                                move_result,
-                                self.__board
-                            )
-                            self.__is_running = False
-                            break
-
-                count += 1
-        except Exception as e:
-            self.__board.save_replay_history()
-            raise e
+            count += 1
 
     def __handle_player_move(self, current_player: Player):
         chess_user = current_player.chessEngineUser
@@ -154,6 +141,7 @@ class Engine:
                 break
 
             chess_user.output_invalid_player_move(move_result)
+
         return move_result
 
 

@@ -1,3 +1,4 @@
+from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from TextualClient.UI.Apps.ChessApp import ChessApp
 from TextualClient.UI.Screens.TextualChessGame import TextualChessGame
 from TextualClient.UI.Screens.HelpScreen import Help
@@ -9,6 +10,9 @@ from TextualClient.UI.Services.PieceUpgradeService import PieceUpgradeService
 from TextualClient.UI.Services.ChessEngineService import ChessEngineService
 
 if __name__ == "__main__":
+    kce_exception_logger.error('error message')
+    kce_exception_logger.critical('critical message')
+
     # singleton services
     chess_app_game_settings_service = ChessAppGameSettings()
     piece_upgrade_service = PieceUpgradeService()

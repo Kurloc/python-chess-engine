@@ -18,8 +18,6 @@ class TextualAiEngineUser(AiEngineUser):
     def __init__(self, engine_user_event_bus: EngineUserEventBus, board: Board):
         super().__init__(board, board.teams, 5)
         self.engine_user_event_bus = engine_user_event_bus
-        with open('../../constructed.txt', 'w') as f:
-            f.write('constructed engine user')
 
     def input_piece_can_be_upgraded(self) -> ChessPieces:
         return super().input_piece_can_be_upgraded()

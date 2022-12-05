@@ -73,12 +73,8 @@ class EngineUserEventBus(abc.ABC):
                 cell_text = ""
             try:
                 self.game.cell(pos.x, pos.y).label = cell_text
-            except NoMatches as e:
-                with open('../../KCE_exception.txt', 'a', encoding='utf-8') as f:
-                    tb = traceback.format_exc()
-                    f.writelines(str(e))
-                    f.writelines('==============================')
-                    f.writelines(tb)
+            except NoMatches:
+                pass
 
     def on_output_board_state(
             self,

@@ -17,8 +17,6 @@ class TextualOfflineEngineUser(IChessEngineUser):
     def __init__(self, engine_user_event_bus: EngineUserEventBus, board: Board):
         super().__init__(board)
         self.engine_user_event_bus = engine_user_event_bus
-        with open('../../constructed.txt', 'w') as f:
-            f.write('constructed engine user')
 
     def input_piece_can_be_upgraded(self) -> ChessPieces:
         return self.engine_user_event_bus.on_piece_can_be_upgraded()
@@ -27,9 +25,6 @@ class TextualOfflineEngineUser(IChessEngineUser):
             self,
             paths: Dict[Tuple[int, int], PlayerPathDict]
     ) -> Tuple[Vector2, Vector2]:
-        with open('../../testing.txt', 'a') as f:
-            f.writelines(str(paths).split(','))
-
         return self.engine_user_event_bus.input_player_move_input(paths)
 
     def output_board_state(

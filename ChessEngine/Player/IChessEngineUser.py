@@ -5,6 +5,7 @@ from typing import Dict, Tuple, Union
 from ChessEngine.Board import Board
 from ChessEngine.Board.AttackResult import AttackResult
 from ChessEngine.Board.MoveResult import MoveResult
+from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from ChessEngine.Pathfinding.PathfindingTile import PathFindingTile
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Pieces.ChessPieces import ChessPieces
@@ -82,13 +83,14 @@ class IChessEngineUser(abc.ABC):
                     valid_moves[path_key] = path
             return valid_moves
 
-        except Exception:
-            with open(f'KCE_exception.txt', 'a', encoding='utf-8') as outfile:
-                from ChessEngine.Debugging.PrintDebugger import PrintDebugger
-                outfile.writelines(PrintDebugger.print_board(board.map, board.game_board_size, False))
-                tb = traceback.format_exc()
-                outfile.writelines(tb)
-
+        except Exception as e:
+            from ChessEngine.Debugging.PrintDebugger import PrintDebugger
+            tb = traceback.format_exc()
+            kce_exception_logger.info('Exception in get_valid_moves_from_paths_for_piece')
+            kce_exception_logger.exception(e)
+            kce_exception_logger.warning(tb)
+            kce_exception_logger.info(PrintDebugger.print_board(board.map, board.game_board_size, False))
+            kce_exception_logger.info('============================================================================')
             raise
 
     @staticmethod

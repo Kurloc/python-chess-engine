@@ -1,4 +1,3 @@
-import time
 from typing import Tuple, Dict, Final, cast
 
 from textual.app import ComposeResult
@@ -180,44 +179,29 @@ class TextualChessGame(Screen):
         self.from_cell = cell_pos
         self.remove_highlight_on_all_highlighted_cells()
 
-        with open('moves-log.txt', 'w') as f:
-            f.write(f'moving_cell: {self.moving_cell_position}\n')
-            f.write(f'cell_pos: {cell_pos}\n')
-            f.write(f'valid_moves: {self.valid_moves}\n')
-            f.write(f'looking for: {(self.moving_cell_position, cell_pos)}\n')
-            f.write(f'found: {(self.moving_cell_position, cell_pos) in self.valid_moves}\n')
+        if self.moving_cell_position is not None and (self.moving_cell_position, cell_pos) in self.valid_moves:
+            self.from_cell = self.moving_cell_position
+            self.to_cell = cell_pos
+            self.query_one(GameHeader).mt = self.to_cell
+            self.send_piece_move(self.from_cell, self.to_cell)
 
-            if self.moving_cell_position is not None and (self.moving_cell_position, cell_pos) in self.valid_moves:
-                f.write(f'valid move!\n')
-                self.from_cell = self.moving_cell_position
-                self.to_cell = cell_pos
-                self.query_one(GameHeader).mt = self.to_cell
-                f.write(f'moving from {self.from_cell} -> {self.to_cell}\n')
-                self.send_piece_move(self.from_cell, self.to_cell)
-                f.write(f'move complete!\n')
+        valid_moves = IChessEngineUser.get_valid_moves_from_paths_for_piece(
+            self.chess_engine_service.board,
+            cell_pos,
+            paths
+        )
 
-            f.write(f'valid_moves_dict: \n{self.valid_moves}\n')
+        if len(valid_moves) > 0:
+            self.query_one(GameHeader).mouse_down = True
+            self.moving_cell_position = cell_pos
+            self.query_one(GameHeader).mf = self.from_cell
+        else:
+            self.moving_cell_position = None
 
-            valid_moves = IChessEngineUser.get_valid_moves_from_paths_for_piece(
-                self.chess_engine_service.board,
-                cell_pos,
-                paths
-            )
-
-            f.write(f'valid_moves_len: \n{valid_moves}\n\n')
-            f.write(f'paths: \n{paths}\n\n')
-            f.write(f'cell_pos: \n{cell_pos}\n\n')
-            if len(valid_moves) > 0:
-                self.query_one(GameHeader).mouse_down = True
-                self.moving_cell_position = cell_pos
-                self.query_one(GameHeader).mf = self.from_cell
-            else:
-                self.moving_cell_position = None
-
-            for move_key in valid_moves:
-                move = valid_moves[move_key]
-                self.valid_moves.append(move_key)
-                self.highlight_move(move.position.get_tuple())
+        for move_key in valid_moves:
+            move = valid_moves[move_key]
+            self.valid_moves.append(move_key)
+            self.highlight_move(move.position.get_tuple())
 
         self.to_set = True
 

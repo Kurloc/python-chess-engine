@@ -12,6 +12,7 @@ from ChessEngine.Board.BoardEventTypes import BoardEventTypes
 from ChessEngine.Board.GameState import GameState
 from ChessEngine.Board.MoveResult import MoveResult
 from ChessEngine.Board.WinConditions import WinConditions
+from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from ChessEngine.Pathfinding.PathfindingTile import PathFindingTile
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Pieces.Bishop import Bishop
@@ -376,14 +377,14 @@ class Board:
             outfile.writelines('}')
             outfile.writelines('\n')
 
-        with open(f'KCE_exception.txt', 'a', encoding='utf-8') as outfile:
-            from ChessEngine.Debugging.PrintDebugger import PrintDebugger
-            tb = traceback.format_exc()
-            outfile.writelines(tb)
-            board_state_str = PrintDebugger.print_board(self.map, self.game_board_size, False)
-            f = f'Board: \n{board_state_str}\n======================================\n'
-            outfile.writelines(f'\nBoard State: {len(board_state_str)}:{len(f)}\n')
-            outfile.writelines(f)
+        from ChessEngine.Debugging.PrintDebugger import PrintDebugger
+        tb = traceback.format_exc()
+
+        board_state_str = PrintDebugger.print_board(self.map, self.game_board_size, False)
+        f = f'Board: \n{board_state_str}\n======================================\n'
+
+        kce_exception_logger.warning(tb)
+        kce_exception_logger.warning(f)
 
         return json_history
 

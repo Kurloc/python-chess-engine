@@ -1,0 +1,175 @@
+$animation-type: linear;
+$animation-speed: 175ms;
+
+TextualChessGame {
+    align: center middle;
+    layers: gameplay messages;
+}
+
+GameGrid {
+    layout: grid;
+    grid-size: 8 8;
+    layer: gameplay;
+}
+
+GameHeader {
+    background: $primary-background;
+    color: $text;
+    height: 1;
+    dock: top;
+    layer: gameplay;
+}
+
+GameHeader #app-title {
+    width: 30%;
+}
+
+GameHeader #mouse_down {
+    width: 30%;
+}
+
+GameHeader #moves {
+    width: 20%;
+}
+
+GameHeader #mf {
+    width: 10%;
+}
+
+GameHeader #mt {
+    width: 10%;
+}
+
+GameHeader #progress {
+    width: 20%;
+}
+
+Footer {
+    height: 1;
+    dock: bottom;
+    layer: gameplay;
+}
+
+GameCell {
+    width: 100%;
+    height: 100%;
+    background: $surface;
+    border: round $surface-lighten-3;
+    transition: background $animation-speed $animation-type, color $animation-speed $animation-type;
+}
+
+GameCell:hover {
+    background: $panel-lighten-1;
+    border: round $secondary;
+}
+
+.selected-cell {
+    background: $secondary-darken-3!important;
+    border: round $secondary-darken-1!important;
+}
+.selected-cell:hover {
+    border: round $secondary-lighten-1!important;
+}
+
+GameCell.filled {
+    background: $background;
+    border: round $secondary-darken-1;
+}
+
+GameCell.filled:hover {
+    background: $background-lighten-1;
+    border: round $secondary;
+}
+
+GameCell.odd {
+    background: $primary-background-lighten-2;
+    border: round $secondary-darken-1;
+}
+
+GameCell.odd:hover {
+    background: $primary-background-lighten-3;
+    border: round $secondary-lighten-1;
+}
+
+WinnerMessage {
+    width: 55%;
+    height: 90%;
+    layer: messages;
+    visibility: hidden;
+    content-align: center middle;
+    text-align: center;
+    background: $success;
+    color: $text;
+    border: round;
+    padding: 0;
+    margin: 0;
+}
+
+#game_over_markdown_container {
+    overflow: auto scroll;
+    min-width: 100%;
+}
+#game_over_markdown {
+    width: auto;
+}
+#markdown_container {
+    height: 70%;
+}
+#quit_button_container {
+    align: right bottom;
+    height: 15%;
+}
+
+.visible {
+    visibility: visible;
+}
+
+Help {
+    background: $primary;
+    color: $text;
+    border: round $primary-lighten-3;
+    padding: 2;
+}
+
+#piece-upgrade-container {
+    height: 100%;
+}
+#piece_upgrade {
+    layers: messages;
+    content-align: center middle;
+    text-align: center;
+    background: $secondary-darken-3;
+    color: $text;
+    border: round $secondary-lighten-1;
+    padding: 2;
+}
+#piece-upgrade-grid {
+    layout: grid;
+    grid-size: 6 1;
+    height: 40%;
+}
+#selection-container {
+    height: 20%;
+}
+
+#selection-footer-container {
+    height: 40%;
+    align: right bottom;
+}
+
+#center_content_container {
+    align: center middle;
+    layers: main_menu;
+}
+#menu-buttons {
+    align: center middle;
+    layers: main_menu;
+    width: 100;
+}
+#menu-buttons Button {
+    width: 100;
+}
+#upgrade-button {
+    border: round $secondary-darken-3;
+    height: 24%;
+}

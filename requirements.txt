@@ -1,0 +1,6 @@
+pydantic~=1.10.2
+rich~=12.6.0
+textual~=0.5.0
+parameterized~=0.8.1
+reactivex~=4.0.4
+Pygments~=2.13.0

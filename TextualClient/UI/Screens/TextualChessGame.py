@@ -12,6 +12,7 @@ from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Player.IChessEngineUser import IChessEngineUser
 from ChessEngine.Player.Player import Player
 from TextualClient.ChessEngine.EngineUserEventBus import EngineUserEventBus
+from TextualClient.ChessEngine.TextualAiEngineUser import TextualAiEngineUser
 from TextualClient.UI.Enums.GameModes import GameModes
 from TextualClient.UI.Services.ChessAppGameSettings import ChessAppGameSettings
 from TextualClient.UI.Services.ChessEngineService import ChessEngineService
@@ -214,7 +215,7 @@ class TextualChessGame(Screen):
 
     def show_piece_upgrade_window(self) -> None:
         self.query_one('#piece_upgrade').styles.width = '75%'
-        self.query_one('#piece_upgrade').styles.height = '35%'
+        self.query_one('#piece_upgrade').styles.height = '45%'
         self.query_one('#piece_upgrade').styles.padding = 2
         self.query_one('#piece_upgrade').styles.visibility = 'visible'
         self.query_one('#piece-upgrade-container').show_horizontal_scrollbar = False
@@ -267,27 +268,22 @@ class TextualChessGame(Screen):
                             self.chess_engine_service.board,
                             TextualOfflineEngineUser(engine_event_bus, self.chess_engine_service.board)
                         ),
+                        # Player(
+                        #     'test-2',
+                        #     self.chess_engine_service.board.teams[1],
+                        #     2,
+                        #     self.chess_engine_service.board,
+                        #     TextualOfflineEngineUser(engine_event_bus, self.chess_engine_service.board)
+                        # ),
                         Player(
-                            'test-2',
+                            'ai',
                             self.chess_engine_service.board.teams[1],
                             2,
                             self.chess_engine_service.board,
-                            TextualOfflineEngineUser(engine_event_bus, self.chess_engine_service.board)
-                        ),
-                        # Player(
-                        #     'ai',
-                        #     self.board.teams[1],
-                        #     2,
-                        #     self.board,
-                        #     TextualAiEngineUser(self.engineUserEventBus, self.board)
-                        # )
+                            TextualAiEngineUser(engine_event_bus, self.chess_engine_service.board)
+                        )
                     ]
                 )
-        # # self.query_one(WinnerMessage).show()
-        # # middle = self.cell(self.SIZE // 2, self.SIZE // 2)
-        # # self.toggle_cells(middle)
-        # # self.set_focus(middle)
-        # # self.game_playable(True)
 
     def action_navigate(self, row: int, col: int) -> None:
         """Navigate to a new cell by the given offsets.

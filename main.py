@@ -10,9 +10,6 @@ from TextualClient.UI.Services.PieceUpgradeService import PieceUpgradeService
 from TextualClient.UI.Services.ChessEngineService import ChessEngineService
 
 if __name__ == "__main__":
-    kce_exception_logger.error('error message')
-    kce_exception_logger.critical('critical message')
-
     # singleton services
     chess_app_game_settings_service = ChessAppGameSettings()
     piece_upgrade_service = PieceUpgradeService()
@@ -42,6 +39,6 @@ if __name__ == "__main__":
         },
         chess_engine_service=chess_engine_service,
         css_file_path='TextualClient/UI/CSS/textual_chess_app.scss',
-        watch_css=False
+        watch_css=True
     ).run()
 

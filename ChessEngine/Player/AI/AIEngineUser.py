@@ -103,10 +103,10 @@ class AiEngineUser(IChessEngineUser):
                 move = paths[move_key]
                 board_copy = bc.copy_board()
                 tile = board_copy.get_tile_by_vector2(starting_position)
-                try:
-                    move_result = board_copy.move_piece(tile, move.position, paths, player_id)
-                except Exception as e:
-                    raise e
+                # try:
+                move_result = board_copy.move_piece(tile, move.position, paths, player_id)
+                # except Exception as e:
+                #     raise e
                     # @TODO: This needs to be removed, this error is causing the bot to make dumb moves.
                     #        Error seems to be related to an issue w/ making the enemy predicted moves.
                     # print("before")
@@ -114,7 +114,7 @@ class AiEngineUser(IChessEngineUser):
                     # print()
                     # print('after')
                     # PrintDebugger.print_board(board_copy.map, board_copy.game_board_size)
-                    continue
+                    # continue
 
                 sf = move_result.success
                 if not sf:
@@ -146,25 +146,25 @@ class AiEngineUser(IChessEngineUser):
         for leaf_key in working_copy:
             leaf = working_copy[leaf_key]
             bc = leaf.board.copy_board()
-            alt_player_moves = self._get_all_paths_for_player(bc, enemy_team_id)
-            alt_move_tree = self.build_terminal_tree_node(
-                bc.copy_board(),
-                enemy_team_id,
-                alt_player_moves
-            )
-
-            if len(alt_move_tree.leaves) > 0:
-                alt_best_move = self._find_best_route(alt_move_tree, enemy_team_id)
-                alt_end_post = alt_best_move[1]
-                alt_tile = bc.get_tile_by_vector2(alt_best_move[0])
-                if alt_tile.piece is not None:
-                    alt_player_paths = bc.find_paths(alt_tile)
-                    bc.move_piece(
-                        alt_tile,
-                        alt_end_post,
-                        alt_player_paths,
-                        enemy_team_id
-                    )
+            # alt_player_moves = self._get_all_paths_for_player(bc, enemy_team_id)
+            # alt_move_tree = self.build_terminal_tree_node(
+            #     bc.copy_board(),
+            #     enemy_team_id,
+            #     alt_player_moves
+            # )
+            #
+            # if len(alt_move_tree.leaves) > 0:
+            #     alt_best_move = self._find_best_route(alt_move_tree, enemy_team_id)
+            #     alt_end_post = alt_best_move[1]
+            #     alt_tile = bc.get_tile_by_vector2(alt_best_move[0])
+            #     if alt_tile.piece is not None:
+            #         alt_player_paths = bc.find_paths(alt_tile)
+            #         bc.move_piece(
+            #             alt_tile,
+            #             alt_end_post,
+            #             alt_player_paths,
+            #             enemy_team_id
+            #         )
 
             player_moves = bc.get_all_paths_for_player(player_id)
             for piece_key in player_moves:

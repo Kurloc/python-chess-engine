@@ -5,6 +5,8 @@ from rich.markdown import Markdown
 from rich.syntax import Syntax
 from textual import events
 from textual.app import ComposeResult
+from textual.containers import Vertical, Container
+from textual.scroll_view import ScrollView
 from textual.widget import Widget
 from textual.widgets import Label, Static, Button
 
@@ -22,8 +24,14 @@ class WinnerMessage(Widget):
     def compose(self) -> ComposeResult:
         yield Label('a', id="game_over_title")
         yield Label('b', id="game_over_text")
-        yield Static('c', id='game_over_markdown')
-        yield Button('Back to Main Menu', id='quit_button')
+        yield Container(
+            Vertical(Static(id="game_over_markdown", expand=True), id="game_over_markdown_container"),
+            id="markdown_container",
+        )
+        yield Container(
+            Button('Back to Main Menu', id='quit_button'),
+            id="quit_button_container",
+        )
 
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == 'quit_button':
@@ -53,14 +61,9 @@ class WinnerMessage(Widget):
         )
 
         self.query_one('#winner_message').styles.width = '75%'
-        self.query_one('#winner_message').styles.height = '55%'
+        self.query_one('#winner_message').styles.height = '90%'
         self.query_one('#winner_message').styles.padding = 2
         self.query_one('#winner_message').styles.visibility = 'visible'
-
-        # self.query_one('#piece-upgrade-container').show_horizontal_scrollbar = False
-        # self.query_one('#piece-upgrade-grid').show_horizontal_scrollbar = False
-        # self.query_one('#piece-upgrade-container').show_vertical_scrollbar = False
-        # self.query_one('#piece-upgrade-grid').show_vertical_scrollbar = False
 
     def hide(self) -> None:
         """Hide the winner message."""

@@ -92,8 +92,8 @@ GameCell.odd:hover {
 }
 
 WinnerMessage {
-    width: 50%;
-    height: 25%;
+    width: 55%;
+    height: 90%;
     layer: messages;
     visibility: hidden;
     content-align: center middle;
@@ -101,7 +101,23 @@ WinnerMessage {
     background: $success;
     color: $text;
     border: round;
-    padding: 2;
+    padding: 0;
+    margin: 0;
+}
+
+#game_over_markdown_container {
+    overflow: auto scroll;
+    min-width: 100%;
+}
+#game_over_markdown {
+    width: auto;
+}
+#markdown_container {
+    height: 70%;
+}
+#quit_button_container {
+    align: right bottom;
+    height: 15%;
 }
 
 .visible {
@@ -130,16 +146,15 @@ Help {
 #piece-upgrade-grid {
     layout: grid;
     grid-size: 6 1;
-    height: 25%;
+    height: 40%;
 }
 #selection-container {
-    height: 50%;
+    height: 20%;
 }
-#confirm_button {
-    margin-left: 55
-}
+
 #selection-footer-container {
-    height: 25%;
+    height: 40%;
+    align: right bottom;
 }
 
 #center_content_container {
@@ -156,4 +171,5 @@ Help {
 }
 #upgrade-button {
     border: round $secondary-darken-3;
+    height: 24%;
 }

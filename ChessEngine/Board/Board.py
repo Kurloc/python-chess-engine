@@ -31,6 +31,20 @@ from ChessEngine.Tile.TileColors import TileColors
 
 
 class Board:
+    chess_piece_map = {
+        "1_1": "P",
+        "1_2": "R",
+        "1_3": "N",
+        "1_4": "B",
+        "1_5": "Q",
+        "1_6": "K",
+        "2_1": "p",
+        "2_2": "r",
+        "2_3": "n",
+        "2_4": "b",
+        "2_5": "q",
+        "2_6": "k"
+    }
     center_distance_map = [
         [3, 3, 3, 3, 3, 3, 3, 3],
         [3, 2, 2, 2, 2, 2, 2, 3],
@@ -128,7 +142,12 @@ class Board:
         else:
             raise Exception(f"Invalid team id: {team_id}")
 
-        home_tiles.pop(starting_pos_tuple)
+        try:
+            home_tiles.pop(starting_pos_tuple)
+        except Exception:
+            Board.print_board(self.map, self.game_board_size)
+            raise
+
         if destination_is_enemy_tile:
             enemy_tiles.pop(target_pos_tuple)
 
@@ -583,3 +602,81 @@ class Board:
             king_moves_to_block[move_set_key] = move
 
         return king_moves_to_block
+
+    @staticmethod
+    def print_board(
+            board: Dict[Tuple[int, int], Tile],
+            board_size: Tuple[int, int],
+            print_to_console: bool = True
+    ) -> str:
+        """
+          ╔╗ ╔╗ ╦ ╦ ╔═╗ ╔═
+          ║╠═╣║ ╚╦╝ ╠═╝ ╠═
+          ╚╝ ╚╝  ╩  ╩   ╚═
+
+         ║0║1║2║3║4║5║6║7║
+        ═╬═╬═╬═╬═╬═╬═╬═╬═╬═
+        0║r║n║b║q║k║b║n║r║
+        ═╬═╬═╬═╬═╬═╬═╬═╬═╣═
+        1║p║p║p║p║p║p║p║p║
+        ═╬═╬═╬═╬═╬═╬═╬═╬═╣═
+        2║p║ ║ ║ ║ ║ ║ ║ ║
+        ═╬═╬═╬═╬═╬═╬═╬═╬═╣═
+        3║P║ ║ ║ ║ ║ ║ ║ ║
+        ═╬═╬═╬═╬═╬═╬═╬═╬═╣═
+        4║ ║ ║ ║ ║ ║ ║ ║ ║
+        ═╬═╬═╬═╬═╬═╬═╬═╬═╣═
+        5║ ║ ║ ║ ║ ║ ║ ║ ║
+        ═╬═╬═╬═╬═╬═╬═╬═╬═╣═
+        6║P║P║P║P║P║P║P║P║
+        ═╬═╬═╬═╬═╬═╬═╬═╬═╣═
+        7║R║N║B║Q║K║B║N║R║
+
+        :param print_to_console:
+        :param board_size:
+        :param board:
+        :return:
+        """
+        return_string = ""
+        max_x = board_size[0]
+        max_y = board_size[1]
+
+        return_string += " ║"
+        for x in range(max_x):
+            return_string += str(x) + "║"
+        return_string += "\n"
+        return_string += "═╬═"
+        for x in range(max_x):
+            if x != max_x - 1:
+                return_string += "╬═"
+            else:
+                return_string += "╬═"
+        return_string += "\n"
+
+        for y in range(max_x):
+            xSepStr = "═╬"
+            xStr = ""
+            for x in range(max_y):
+                if x == 0:
+                    xStr += str(y) + "║"
+
+                tile = board[Vector2(x, y).get_tuple()]
+                printable_chess_piece = " "
+                if tile.piece is not None:
+                    chess_piece = str(tile.piece.chess_piece.value)
+                    color = str(tile.piece.team.color.value)
+                    printable_chess_piece = str(Board.chess_piece_map[f"{color}_{chess_piece}"])
+
+                xSepStr += "═"
+                xSepStr += ("╬" if x + 1 < max_x else "╣")
+                xStr += printable_chess_piece if tile.piece is not None else " "
+                xStr += "║" if x != max_x - 1 else ""
+            if y != 0:
+                return_string += xSepStr + "═" + '\n'
+            return_string += xStr + "║" + '\n'
+        return_string += "\n"
+
+        if print_to_console:
+            print(return_string)
+
+        return return_string

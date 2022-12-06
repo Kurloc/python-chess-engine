@@ -1,8 +1,10 @@
+import traceback
 from threading import Thread
 from typing import List
 
 from ChessEngine.Board.Board import Board
 from ChessEngine.Board.MoveResult import MoveResult
+from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from ChessEngine.Pieces.ChessPieces import ChessPieces
 from ChessEngine.Player.AI.AIEngineUser import AiEngineUser
 from ChessEngine.Player.ConsoleEngineUser import ConsoleEngineUser
@@ -81,24 +83,30 @@ class Engine:
             return
 
     def __start_game_thread(self):
-        count = 0
-        while self.__is_running:
-            for current_player in self.__players:
-                move_result = self.__handle_player_move(current_player)
-                if move_result.game_state.game_over:
-                    current_player.chessEngineUser.output_board_state(
-                        self.__board.map,
-                        self.__board.game_board_size
-                    )
-                    current_player.chessEngineUser.output_player_victory(
-                        current_player.id,
-                        move_result,
-                        self.__board
-                    )
-                    self.__is_running = False
-                    break
+        try:
+            count = 0
+            while self.__is_running:
+                for current_player in self.__players:
+                    move_result = self.__handle_player_move(current_player)
+                    if move_result.game_state.game_over:
+                        current_player.chessEngineUser.output_board_state(
+                            self.__board.map,
+                            self.__board.game_board_size
+                        )
+                        current_player.chessEngineUser.output_player_victory(
+                            current_player.id,
+                            move_result,
+                            self.__board
+                        )
+                        self.__is_running = False
+                        break
 
-            count += 1
+                count += 1
+        except Exception as e:
+            tb = traceback.format_exc()
+            kce_exception_logger.exception(e)
+            kce_exception_logger.warning(tb)
+            raise
 
     def __handle_player_move(self, current_player: Player):
         chess_user = current_player.chessEngineUser

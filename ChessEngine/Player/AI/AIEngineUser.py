@@ -103,18 +103,7 @@ class AiEngineUser(IChessEngineUser):
                 move = paths[move_key]
                 board_copy = bc.copy_board()
                 tile = board_copy.get_tile_by_vector2(starting_position)
-                # try:
                 move_result = board_copy.move_piece(tile, move.position, paths, player_id)
-                # except Exception as e:
-                #     raise e
-                    # @TODO: This needs to be removed, this error is causing the bot to make dumb moves.
-                    #        Error seems to be related to an issue w/ making the enemy predicted moves.
-                    # print("before")
-                    # PrintDebugger.print_board(board.map, board.game_board_size)
-                    # print()
-                    # print('after')
-                    # PrintDebugger.print_board(board_copy.map, board_copy.game_board_size)
-                    # continue
 
                 sf = move_result.success
                 if not sf:
@@ -146,25 +135,25 @@ class AiEngineUser(IChessEngineUser):
         for leaf_key in working_copy:
             leaf = working_copy[leaf_key]
             bc = leaf.board.copy_board()
-            # alt_player_moves = self._get_all_paths_for_player(bc, enemy_team_id)
-            # alt_move_tree = self.build_terminal_tree_node(
-            #     bc.copy_board(),
-            #     enemy_team_id,
-            #     alt_player_moves
-            # )
-            #
-            # if len(alt_move_tree.leaves) > 0:
-            #     alt_best_move = self._find_best_route(alt_move_tree, enemy_team_id)
-            #     alt_end_post = alt_best_move[1]
-            #     alt_tile = bc.get_tile_by_vector2(alt_best_move[0])
-            #     if alt_tile.piece is not None:
-            #         alt_player_paths = bc.find_paths(alt_tile)
-            #         bc.move_piece(
-            #             alt_tile,
-            #             alt_end_post,
-            #             alt_player_paths,
-            #             enemy_team_id
-            #         )
+            alt_player_moves = self._get_all_paths_for_player(bc, enemy_team_id)
+            alt_move_tree = self.build_terminal_tree_node(
+                bc.copy_board(),
+                enemy_team_id,
+                alt_player_moves
+            )
+
+            if len(alt_move_tree.leaves) > 0:
+                alt_best_move = self._find_best_route(alt_move_tree, enemy_team_id)
+                alt_end_post = alt_best_move[1]
+                alt_tile = bc.get_tile_by_vector2(alt_best_move[0])
+                if alt_tile.piece is not None:
+                    alt_player_paths = bc.find_paths(alt_tile)
+                    bc.move_piece(
+                        alt_tile,
+                        alt_end_post,
+                        alt_player_paths,
+                        enemy_team_id
+                    )
 
             player_moves = bc.get_all_paths_for_player(player_id)
             for piece_key in player_moves:
@@ -344,18 +333,13 @@ class AiEngineUser(IChessEngineUser):
         og_leaves: Dict[Tuple[int, int], MoveTreeLeaf] = leaves.copy()
         p1 = -1000000
         p2 = 1000000
-        keys_to_preserve = []
+        keys_to_remove = []
         for leaf_key in og_leaves:
             leaf = leaves[leaf_key]
-            if leaf.player_one >= p1 and leaf.player_two <= p2:
+            if leaf.player_one > p1 and leaf.player_two < p2:
                 p1 = leaf.player_one
                 p2 = leaf.player_two
-                keys_to_preserve.append(leaf_key)
-
-        keys_to_remove = []
-        for key in leaves:
-            if key not in keys_to_preserve:
-                keys_to_remove.append(key)
+                keys_to_remove.append(leaf_key)
 
         for key in keys_to_remove:
             del leaves[key]

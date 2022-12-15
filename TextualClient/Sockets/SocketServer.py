@@ -3,7 +3,11 @@ import socket
 import threading
 from typing import List
 
+from ChessEngine.Board.Board import Board
+from ChessEngine.Board.BoardState import BoardState, PydBoardState
 from SocketClient import Message, MessageTypeBase
+from TextualClient.Sockets.ChessMessage import ChessMessage
+from TextualClient.Sockets.ChessMessageType import ChessMessageType
 
 
 class LoggerBase(metaclass=abc.ABCMeta):
@@ -40,14 +44,18 @@ class SocketServerBase(metaclass=abc.ABCMeta):
     __logger: LoggerBase
     __running: bool = False
     __server_socket: socket.socket
-    connections: dict[SocketConnection, socket.socket]
+    __connections: dict[SocketConnection, socket.socket]
 
     __msg_outgoing_dirty: bool = False
     __msg_obj: Message
 
-    on_message_received: [callable(Message)]
-    on_player_connected: [callable(SocketConnection)]
-    on_player_disconnected: [callable(SocketConnection)]
+    __on_message_received: [callable(Message)]
+    __on_player_connected: [callable(SocketConnection)]
+    __on_player_disconnected: [callable(SocketConnection)]
+
+    __check_for_on_message_received: bool = False
+    __check_for_on_player_connected: bool = False
+    __check_for_on_player_disconnected: bool = False
     port: int
     host_address: str
     max_listeners: int
@@ -58,21 +66,35 @@ class SocketServerBase(metaclass=abc.ABCMeta):
             port=9999,
             max_listeners=5,
             loggerBase: LoggerBase = ConsoleLogger(),
-            on_message_received: [callable(Message)] = None,
-            on_player_connected: [callable(Message)] = None,
-            on_player_disconnected: [callable(Message)] = None
+            on_message_received=None,
+            on_player_connected=None,
+            on_player_disconnected=None
     ):
-        self.__running = False
-        self.__logger = loggerBase
+        if on_player_disconnected is None:
+            on_player_disconnected = []
+        if on_player_connected is None:
+            on_player_connected = []
+        if on_message_received is None:
+            on_message_received = []
+
         self.host_address = host_address
         self.port = port
         self.max_listeners = max_listeners
-        self.on_message_received = on_message_received
-        self.on_player_connected = on_player_connected
-        self.on_player_disconnected = on_player_disconnected
+        self.__running = False
+        self.__logger = loggerBase
+        self.__on_message_received = on_message_received
+        self.__on_player_connected = on_player_connected
+        self.__on_player_disconnected = on_player_disconnected
+        self.__check_for_on_message_received: bool = len(self.__on_message_received) > 0
+        self.__check_for_on_player_connected: bool = len(self.__on_player_connected) > 0
+        self.__check_for_on_player_disconnected: bool = len(self.__on_player_disconnected) > 0
+
+    @abc.abstractmethod
+    def perform_message_logic(self, data: Message):
+        self.__logger.log_info([data.value, str(data.message_type)])
 
     def send_message(self, msg: Message):
-        if msg.value is None or len(msg.value) == 0:
+        if msg.value is None:
             return
 
         self.__msg_obj = msg
@@ -82,82 +104,74 @@ class SocketServerBase(metaclass=abc.ABCMeta):
         self.__running = True
 
         # get instance
-        self.__server_socket = socket.socket()
+        self.__server_socket = socket.socket(family=socket.AF_INET6, type=socket.SOCK_STREAM)
 
         # bind host address and port together
         self.__server_socket.bind((self.host_address, self.port))
 
         # configure how many client the server can listen simultaneously
         self.__server_socket.listen(self.max_listeners)
-        self.connections = {}
-        self.__accept_connections()
+        self.__connections = {}
+        self.__handle_incoming_connections()
         self.__handle_message_loop(run_in_background)
-
-    @abc.abstractmethod
-    def perform_message_logic(self, data: Message):
-        self.__logger.log_info([data.value, str(data.message_type)])
-        if self.on_message_received is not None and len(self.on_message_received) > 0:
-            for callback in self.on_message_received:
-                callback(data)
 
     def stop_server(self):
         self.__running = False
-        self.connections = {}
-        for con in self.connections:
-            self.connections[con].close()
+        self.__connections = {}
+        for con in self.__connections:
+            self.__connections[con].close()
 
         self.__server_socket.close()
 
-    @abc.abstractmethod
-    def _updateLoop(self):
+    def __connection_update_loop(self):
         self.__logger.log_info("Starting accept_connections thread")
         while self.__running:
             sock, address = self.__server_socket.accept()  # accept new connection
-            if sock is not None and address not in [con.address for con in self.connections.keys()]:
+            if sock is not None and address not in [con.address for con in self.__connections.keys()]:
                 self.__logger.log_info("Connection from: " + str(address))
                 conn = SocketConnection(address[0], address[1])
                 self.__handle_on_player_connect_callbacks(sock, conn)
 
     def __handle_on_player_connect_callbacks(self, sock: socket, conn: SocketConnection):
-        newDict = self.connections.copy()
+        newDict = self.__connections.copy()
         sock.setblocking(False)
         newDict[conn] = sock
-        self.connections = newDict
+        self.__connections = newDict
 
-        if self.on_player_connected is not None and len(self.on_player_connected) > 0:
-            for callback in self.on_player_connected:
+        if self.__check_for_on_player_connected:
+            for callback in self.__on_player_connected:
                 callback(conn)
 
-    def __accept_connections(self):
+    def __handle_incoming_connections(self):
         # Only call this function once
-        self.__update_thread = threading.Thread(target=self._updateLoop)
+        self.__update_thread = threading.Thread(target=self.__connection_update_loop)
         self.__update_thread.daemon = True
         self.__update_thread.start()
 
     def __close_connection(self, conn: SocketConnection, sock: socket.socket):
         self.__logger.log_info("User disconnected!")
-        newDict = self.connections.copy()
+        newDict = self.__connections.copy()
         newDict.pop(conn)
-        self.connections = newDict
+        self.__connections = newDict
         sock.close()  # close the connection
 
-        if self.on_player_disconnected is not None and len(self.on_player_disconnected) > 0:
-            for callback in self.on_player_disconnected:
+        if self.__check_for_on_player_disconnected:
+            for callback in self.__on_player_disconnected:
                 callback(conn)
 
     def __message_loop(self):
         self.__logger.log_info('Starting incoming / outgoing message loop')
         while self.__running:
             clean_outgoing = False
-            for socket_connection in self.connections:
-                connection = self.connections[socket_connection]
+            for socket_connection in self.__connections:
+                connection = self.__connections[socket_connection]
                 try:
                     if self.__msg_outgoing_dirty:
                         clean_outgoing = True
                         msg = self.__msg_obj.json()
                         connection.send(msg.encode())
 
-                    incoming = connection.recv(64256).decode()
+                    incoming = connection.recv(642560).decode()
                     if not incoming:
                         # if data is not received break
                         continue
@@ -180,6 +194,9 @@ class SocketServerBase(metaclass=abc.ABCMeta):
 
                 else:
                     self.perform_message_logic(data)
+                    if self.__check_for_on_message_received:
+                        for callback in self.__on_message_received:
+                            callback(data)
 
                 connection.send(Message(message_type=MessageTypeBase.ACK).json().encode())  # send data to the client
 
@@ -188,7 +205,6 @@ class SocketServerBase(metaclass=abc.ABCMeta):
 
     def __handle_message_loop(self, run_in_background: bool = False):
         if run_in_background:
-            # Only call this function once
             self.__messaging_thread = threading.Thread(target=self.__message_loop)
             self.__messaging_thread.daemon = True
             self.__messaging_thread.start()
@@ -197,11 +213,14 @@ class SocketServerBase(metaclass=abc.ABCMeta):
 
 
 class SocketServer(SocketServerBase):
-    def __init__(self, host_address='localhost', port=9999, max_listeners=5, loggerBase=ConsoleLogger()):
+    def __init__(
+            self,
+            host_address=socket.gethostname(),
+            port=9999,
+            max_listeners=5,
+            loggerBase=ConsoleLogger()
+    ):
         super().__init__(host_address, port, max_listeners, loggerBase)
-
-    def _updateLoop(self):
-        super()._updateLoop()
 
     def perform_message_logic(self, data: Message):
         super().perform_message_logic(data)
@@ -209,8 +228,19 @@ class SocketServer(SocketServerBase):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    server = SocketServer(socket.gethostname())
+    server = SocketServer()
     server.start_server(True)
     while True:
         inputValue = input('Enter message: ')
-        server.send_message(Message(value=inputValue, message_type=MessageTypeBase.STR_MSG))
+
+        board = Board()
+        input_value = BoardState(board.map, board.game_board_size)
+        server.send_message(
+            Message(
+                value=ChessMessage(
+                    message_value=PydBoardState.from_board_state(input_value).json(),
+                    message_type=ChessMessageType.BOARD_STATE
+                ).json(),
+                message_type=MessageTypeBase.STR_MSG
+            )
+        )

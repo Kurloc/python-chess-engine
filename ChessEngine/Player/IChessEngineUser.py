@@ -4,6 +4,7 @@ from typing import Dict, Tuple, Union
 
 from ChessEngine.Board import Board
 from ChessEngine.Board.AttackResult import AttackResult
+from ChessEngine.Board.BoardState import BoardState
 from ChessEngine.Board.MoveResult import MoveResult
 from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from ChessEngine.Pathfinding.PathfindingTile import PathFindingTile
@@ -31,11 +32,7 @@ class IChessEngineUser(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def output_board_state(
-            self,
-            board: Dict[Tuple[int, int], Tile],
-            board_size: Tuple[int, int]
-    ) -> None:
+    def output_board_state(self, board_state: BoardState) -> None:
         pass
 
     @abc.abstractmethod

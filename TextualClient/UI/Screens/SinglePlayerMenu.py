@@ -7,15 +7,15 @@ from textual.widgets import Button, Footer, Header
 from TextualClient.UI.Enums.ScreenKeys import ScreenKeys
 from TextualClient.UI.Enums.GameModes import GameModes
 from TextualClient.UI.Screens.Generic.ButtonMenuScreen import ButtonMenuScreen
-from TextualClient.UI.Services.ChessAppGameSettings import ChessAppGameSettings
+from TextualClient.UI.Services.ChessGameSettings import ChessGameSettings
 
 
 class SinglePlayerMenu(ButtonMenuScreen):
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
     __play_game_screen: Callable[[], Screen]
-    __chess_app_game_settings_service: ChessAppGameSettings
+    __chess_app_game_settings_service: ChessGameSettings
 
-    def __init__(self, chess_app_game_settings_service: ChessAppGameSettings):
+    def __init__(self, chess_app_game_settings_service: ChessGameSettings):
         super().__init__()
         self.__chess_app_game_settings_service = chess_app_game_settings_service
 

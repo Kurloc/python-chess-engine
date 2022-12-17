@@ -9,14 +9,15 @@ import threading
 from abc import abstractmethod
 from typing import Self, cast, Tuple
 
+from ChessEngine.Board.AttackResult import AttackResult
 from ChessEngine.Board.Board import Board
-from ChessEngine.Board.BoardState import BoardState, PydBoardState
-from ChessEngine.Pathfinding.Vector2 import Vector2
+from ChessEngine.Board.BoardState import BoardState
+from ChessEngine.Player.IChessEngineUser import PlayerTurnStart
 from ChessEngine.Player.PlayerPathDict import PlayerPathDict
 from ChessEngine.Pydantic.TupleToString import tuple_to_string, string_to_tuple
-from ChessEngine.Tile.Tile import Tile
 from TextualClient.Sockets.ChessMessage import ChessMessage
 from TextualClient.Sockets.ChessMessageType import ChessMessageType
+from TextualClient.Sockets.JoinGameMessage import JoinGameMessage
 from TextualClient.Sockets.Message import Message
 from TextualClient.Sockets.MessageTypeBase import MessageTypeBase
 
@@ -92,9 +93,6 @@ class SocketClient:
             if self.__msg_incoming_cache is not None \
                     and self.__msg_incoming_cache.value is not incoming_value \
                     and incoming_value is not None:
-                print('=============================================================')
-                print(incoming_value)
-                print('=============================================================')
                 self.__msg_incoming_cache = Message.parse_raw(incoming_value.decode())
                 self.__msg_incoming_dirty = True
                 match self.__msg_incoming_cache.message_type:
@@ -129,13 +127,20 @@ class SocketClient:
 
 
 class ChessSocketClient(SocketClient):
-
     def handle_parsed_json_message(self, json_string: str):
         chessMessage = ChessMessage.parse_raw(json_string)
         match chessMessage.message_type:
-            case ChessMessageType.BOARD_STATE.value:
-                board_state = PydBoardState.parse_raw(chessMessage.message_value)
-                print(board_state)
+            case ChessMessageType.MOVE.value:
+                pass
+            case ChessMessageType.PLAYER_TURN_STARTED.value:
+                player_turn_start = PlayerTurnStart.from_dict(json.loads(chessMessage.message_value))
+            case ChessMessageType.INVALID_PLAYER_MOVE.value:
+                attack_result = AttackResult.from_dict(json.loads(chessMessage.message_value))
+            case ChessMessageType.INPUT_INPUT_PIECE_CAN_BE_UPGRADED.value:
+                pass
+            case ChessMessageType.OUTPUT_INPUT_PIECE_CAN_BE_UPGRADED.value:
+                pass
+
 
 def from_json_player_moves(player_moves: str) -> dict[tuple[int, int], PlayerPathDict]:
     return_dict = {}
@@ -148,12 +153,14 @@ def from_json_player_moves(player_moves: str) -> dict[tuple[int, int], PlayerPat
     print(working_dict)
     return return_dict
 
+
 def to_json_player_moves(player_moves: dict[tuple[int, int], PlayerPathDict]) -> str:
     json_dict = {}
     for key in player_moves:
         json_dict[tuple_to_string(key)] = player_moves[key].to_dict()
 
     return json.dumps(json_dict)
+
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -168,10 +175,12 @@ if __name__ == '__main__':
         input_value = BoardState(board.map, board.game_board_size)
         client.send_message(
             Message(
-                value=ChessMessage(
-                    message_value=json.dumps(paths),
-                    message_type=ChessMessageType.MOVE
-                ).json(),
-                message_type=MessageTypeBase.STR_MSG
+                value=json.dumps(
+                    JoinGameMessage(
+                        'MichaelIsCool',
+                        socket.gethostname()
+                    ).to_dict()
+                ),
+                message_type=MessageTypeBase.JOIN_LOBBY
             )
         )

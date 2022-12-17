@@ -3,6 +3,8 @@ from textual.containers import Container
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header
 
+from TextualClient.UI.Enums.ScreenKeys import ScreenKeys
+
 
 class MainMenuScreen(Screen):
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
@@ -11,9 +13,9 @@ class MainMenuScreen(Screen):
         """Event handler called when a button is pressed."""
         button_id = event.button.id
         if button_id == "sp":
-            self.app.push_screen("SinglePlayerMenu")
+            self.app.push_screen(ScreenKeys.SINGLE_PLAYER_MENU)
         if button_id == "mp":
-            self.app.push_screen("MultiplayerMenu")
+            self.app.push_screen(ScreenKeys.MULTIPLAYER_MENU)
         if button_id == "settings":
             pass
             # self.app.push_screen("") - do we need settings?

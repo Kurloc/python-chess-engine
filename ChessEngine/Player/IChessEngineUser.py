@@ -1,9 +1,10 @@
 import abc
+import dataclasses
 import traceback
 from typing import Dict, Tuple, Union
 
-from ChessEngine.Board import Board
 from ChessEngine.Board.AttackResult import AttackResult
+from ChessEngine.Board.Board import Board
 from ChessEngine.Board.BoardState import BoardState
 from ChessEngine.Board.MoveResult import MoveResult
 from ChessEngine.Debugging.setup_logger import kce_exception_logger
@@ -11,8 +12,44 @@ from ChessEngine.Pathfinding.PathfindingTile import PathFindingTile
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Pieces.ChessPieces import ChessPieces
 from ChessEngine.Player.PlayerPathDict import PlayerPathDict
-from ChessEngine.Tile.Tile import Tile
 
+@dataclasses.dataclass
+class PlayerTurnStart:
+    player_id: int
+
+    def to_dict(self):
+        return {
+            'player_id': self.player_id
+        }
+
+    @staticmethod
+    def from_dict(incoming_value: Dict):
+        return PlayerTurnStart(incoming_value.get('player_id'))
+
+@dataclasses.dataclass
+class PlayerVictory:
+    winning_player_id: int
+    move_result: MoveResult
+    board: Board
+
+    def to_dict(self):
+        return {
+            'winning_player_id': self.winning_player_id,
+            'move_result': self.move_result.to_dict(),
+            'board': self.board.to_dict()
+        }
+
+    @staticmethod
+    def from_dict(incoming_value: Dict):
+        return PlayerVictory(
+            incoming_value.get('winning_player_id'),
+            MoveResult.from_dict(incoming_value.get('move_result')),
+            Board.from_dict(incoming_value.get('board'))
+        )
+
+@dataclasses.dataclass
+class ChessPieceUpgradeSelection:
+    ChessPieces: ChessPieces
 
 class IChessEngineUser(abc.ABC):
     board: Board
@@ -21,7 +58,7 @@ class IChessEngineUser(abc.ABC):
         self.board = board
 
     @abc.abstractmethod
-    def input_piece_can_be_upgraded(self) -> ChessPieces:
+    def input_piece_can_be_upgraded(self) -> ChessPieceUpgradeSelection:
         pass
 
     @abc.abstractmethod
@@ -36,7 +73,7 @@ class IChessEngineUser(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def output_player_turn_started(self, player_id: int) -> None:
+    def output_player_turn_started(self, player_turn_start: PlayerTurnStart) -> None:
         pass
 
     @abc.abstractmethod
@@ -50,9 +87,7 @@ class IChessEngineUser(abc.ABC):
     @abc.abstractmethod
     def output_player_victory(
             self,
-            winning_player_id: int,
-            move_result: MoveResult,
-            board: Board
+            player_victory: PlayerVictory
     ) -> None:
         pass
 

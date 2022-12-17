@@ -26,6 +26,7 @@ from ChessEngine.Pieces.Rook import Rook
 from ChessEngine.Player.PlayerPathDict import PlayerPathDict
 from ChessEngine.Player.PlayerStartPositions import PlayerStartPositions
 from ChessEngine.Player.Team import Team
+from ChessEngine.Pydantic.TupleToString import tuple_to_string, string_to_tuple
 from ChessEngine.Tile.Tile import Tile
 from ChessEngine.Tile.TileColors import TileColors
 
@@ -327,7 +328,10 @@ class Board:
                 if isBlocked and current_tile.piece.is_blockable:
                     break
 
-    def get_all_paths_for_player(self, team: Union[Team, int]) -> Dict[Tuple[int, int], PlayerPathDict]:
+    def get_all_paths_for_player(
+            self,
+            team: Union[Team, int]
+    ) -> Dict[Tuple[int, int], PlayerPathDict]:
         if type(team) == int:
             team = [x for x in self.teams if x.team_id == team][0]
 
@@ -603,6 +607,17 @@ class Board:
 
         return king_moves_to_block
 
+    def to_dict(self):
+        json_map = {}
+        for key in self.map:
+            tile = self.map[key]
+            json_map[tuple_to_string(key)] = tile.to_dict()
+
+        return {
+            'map': json_map,
+            'teams': [team.to_dict() for team in self.teams]
+        }
+
     @staticmethod
     def print_board(
             board: Dict[Tuple[int, int], Tile],
@@ -680,3 +695,15 @@ class Board:
             print(return_string)
 
         return return_string
+
+    @staticmethod
+    def from_dict(incoming_value: Dict):
+        deserialized_map = incoming_value['map']
+        working_map = {}
+        for key in deserialized_map:
+            working_map[string_to_tuple(key)] = Tile.from_dict(deserialized_map[key])
+
+        return Board(
+            working_map,
+            [Team.from_dict(team) for team in incoming_value['teams']]
+        )

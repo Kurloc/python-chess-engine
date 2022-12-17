@@ -10,6 +10,7 @@ from ChessEngine.Pathfinding.MoveTree.MoveTreeLeaf import MoveTreeLeaf
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Pieces.Pawn import Pawn
 from ChessEngine.Player.AI.AIEngineUser import AiEngineUser
+from ChessEngine.Player.IChessEngineUser import PlayerTurnStart
 from ChessEngine.Player.PlayerStartPositions import PlayerStartPositions
 from ChessEngine.Player.Team import Team
 from ChessEngine.Tile.TileColors import TileColors
@@ -167,7 +168,7 @@ class TestPathfinding(unittest.TestCase):
         PrintDebugger.print_board(bf.board.map, bf.board.game_board_size)
         try:
             ai = AiEngineUser(bf.board, [w, b], 3)
-            ai.output_player_turn_started(2)
+            ai.output_player_turn_started(PlayerTurnStart(2))
 
             for move in expected_move:
                 paths = bf.board.get_all_paths_for_player(2)

@@ -1,32 +1,27 @@
 import abc
+import logging
 import socket
 import threading
-from typing import List
+from dataclasses import dataclass
+from typing import Any, Union
 
-from ChessEngine.Board.Board import Board
-from ChessEngine.Board.BoardState import BoardState, PydBoardState
-from SocketClient import Message, MessageTypeBase
-from TextualClient.Sockets.ChessMessage import ChessMessage
-from TextualClient.Sockets.ChessMessageType import ChessMessageType
+from ChessEngine.Debugging.setup_logger import kce_exception_logger
+from TextualClient.Sockets.Message import Message
+from TextualClient.Sockets.MessageTypeBase import MessageTypeBase
 
+@dataclass
+class OnMessageReceived:
+    callback: callable([Message, dict])
+    kwargs: list[str]
 
-class LoggerBase(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def log_info(self, msg: str | List[str]):
-        return
+    def __init__(self, callback: callable([Message, dict]), kwargs: list[str]):
+        self.callback = callback
+        self.kwargs = kwargs
 
-    @abc.abstractmethod
-    def log_error(self, msg: str | List[str]):
-        return
-
-
-class ConsoleLogger(LoggerBase):
-    def log_error(self, msg: str | List[str]):
-        self.log_info(msg)
-
-    def log_info(self, msg: str | List[str]):
-        print(msg)
-
+@dataclass
+class OnMessageReceivedCallBack:
+    on_message_received: OnMessageReceived
+    kwarg_values: dict[str, Any]
 
 class SocketConnection(metaclass=abc.ABCMeta):
     address: str
@@ -41,7 +36,7 @@ class SocketServerBase(metaclass=abc.ABCMeta):
     __update_thread: threading.Thread
     __messaging_thread: threading.Thread
 
-    __logger: LoggerBase
+    __logger: logging.Logger
     __running: bool = False
     __server_socket: socket.socket
     __connections: dict[SocketConnection, socket.socket]
@@ -49,9 +44,9 @@ class SocketServerBase(metaclass=abc.ABCMeta):
     __msg_outgoing_dirty: bool = False
     __msg_obj: Message
 
-    __on_message_received: [callable(Message)]
-    __on_player_connected: [callable(SocketConnection)]
-    __on_player_disconnected: [callable(SocketConnection)]
+    __on_message_received: list[OnMessageReceivedCallBack]
+    __on_player_connected: list[callable(SocketConnection)]
+    __on_player_disconnected: list[callable(SocketConnection)]
 
     __check_for_on_message_received: bool = False
     __check_for_on_player_connected: bool = False
@@ -62,13 +57,13 @@ class SocketServerBase(metaclass=abc.ABCMeta):
 
     def __init__(
             self,
-            host_address='localhost',
-            port=9999,
-            max_listeners=5,
-            loggerBase: LoggerBase = ConsoleLogger(),
-            on_message_received=None,
-            on_player_connected=None,
-            on_player_disconnected=None
+            host_address: str = 'localhost',
+            port: int = 9999,
+            max_listeners: int = 5,
+            logger: logging.Logger = kce_exception_logger,
+            on_message_received: Union[list[OnMessageReceivedCallBack], None] = None,
+            on_player_connected: Union[list[callable(SocketConnection)], None] = None,
+            on_player_disconnected: Union[list[callable(SocketConnection)], None] = None,
     ):
         if on_player_disconnected is None:
             on_player_disconnected = []
@@ -81,7 +76,7 @@ class SocketServerBase(metaclass=abc.ABCMeta):
         self.port = port
         self.max_listeners = max_listeners
         self.__running = False
-        self.__logger = loggerBase
+        self.__logger = logger
         self.__on_message_received = on_message_received
         self.__on_player_connected = on_player_connected
         self.__on_player_disconnected = on_player_disconnected
@@ -91,7 +86,7 @@ class SocketServerBase(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def perform_message_logic(self, data: Message):
-        self.__logger.log_info([data.value, str(data.message_type)])
+        self.__logger.debug([data.value, str(data.message_type)])
 
     def send_message(self, msg: Message):
         if msg.value is None:
@@ -116,19 +111,33 @@ class SocketServerBase(metaclass=abc.ABCMeta):
         self.__handle_message_loop(run_in_background)
 
     def stop_server(self):
+        close_server = self.__running is True
         self.__running = False
         self.__connections = {}
         for con in self.__connections:
             self.__connections[con].close()
 
-        self.__server_socket.close()
+        if close_server:
+            self.__server_socket.close()
+
+    def _close_connection(self, conn: SocketConnection, sock: socket.socket):
+        self.__logger.debug("User disconnected!")
+        newDict = self.__connections.copy()
+        newDict.pop(conn)
+        self.__connections = newDict
+        sock.close()  # close the connection
+
+        if self.__check_for_on_player_disconnected:
+            for callback in self.__on_player_disconnected:
+                callback(conn)
 
     def __connection_update_loop(self):
-        self.__logger.log_info("Starting accept_connections thread")
+        self.__logger.debug("Starting accept_connections thread")
+        self.__logger.debug(f"Accepting connections at: {self.host_address}:{str(self.port)}")
         while self.__running:
             sock, address = self.__server_socket.accept()  # accept new connection
             if sock is not None and address not in [con.address for con in self.__connections.keys()]:
-                self.__logger.log_info("Connection from: " + str(address))
+                self.__logger.debug("Connection from: " + str(address))
                 conn = SocketConnection(address[0], address[1])
                 self.__handle_on_player_connect_callbacks(sock, conn)
 
@@ -148,19 +157,8 @@ class SocketServerBase(metaclass=abc.ABCMeta):
         self.__update_thread.daemon = True
         self.__update_thread.start()
 
-    def __close_connection(self, conn: SocketConnection, sock: socket.socket):
-        self.__logger.log_info("User disconnected!")
-        newDict = self.__connections.copy()
-        newDict.pop(conn)
-        self.__connections = newDict
-        sock.close()  # close the connection
-
-        if self.__check_for_on_player_disconnected:
-            for callback in self.__on_player_disconnected:
-                callback(conn)
-
     def __message_loop(self):
-        self.__logger.log_info('Starting incoming / outgoing message loop')
+        self.__logger.debug('Starting incoming / outgoing message loop')
         while self.__running:
             clean_outgoing = False
             for socket_connection in self.__connections:
@@ -184,19 +182,40 @@ class SocketServerBase(metaclass=abc.ABCMeta):
 
                 # close the connection
                 except:
-                    self.__close_connection(socket_connection, connection)
+                    self._close_connection(socket_connection, connection)
                     continue
 
                 # close the connection
                 if data.message_type == MessageTypeBase.DISCONNECT and data.value == '\0close_connection\0':
-                    self.__close_connection(socket_connection, connection)
+                    self._close_connection(socket_connection, connection)
                     continue
 
                 else:
                     self.perform_message_logic(data)
-                    if self.__check_for_on_message_received:
-                        for callback in self.__on_message_received:
-                            callback(data)
+                    try:
+                        if self.__check_for_on_message_received:
+                            kce_exception_logger.info('Calling on_message_received callbacks')
+                            for msg_receiver in self.__on_message_received:
+                                kwargs = {}
+                                for key in msg_receiver.on_message_received.kwargs:
+                                    kwargs[key] = msg_receiver.kwarg_values[key]
+
+                                kce_exception_logger.info('==============================================')
+                                kce_exception_logger.info('Calling callback')
+                                kce_exception_logger.info(data)
+                                kce_exception_logger.info(kwargs)
+                                kce_exception_logger.info(msg_receiver.on_message_received.callback)
+                                msg_receiver.on_message_received.callback(
+                                    data,
+                                    kwargs
+                                )
+                                kce_exception_logger.info('==============================================')
+                        else:
+                            kce_exception_logger.info('==============================================')
+                            kce_exception_logger.info('There are no on_message_received callbacks')
+                            kce_exception_logger.info('==============================================')
+                    except Exception as e:
+                        kce_exception_logger.exception('an exception occurred while executing callbacks, see below.')
 
                 connection.send(Message(message_type=MessageTypeBase.ACK).json().encode())  # send data to the client
 
@@ -218,29 +237,31 @@ class SocketServer(SocketServerBase):
             host_address=socket.gethostname(),
             port=9999,
             max_listeners=5,
-            loggerBase=ConsoleLogger()
+            logger=kce_exception_logger,
+            on_message_received=None,
+            on_player_connected=None,
+            on_player_disconnected=None
     ):
-        super().__init__(host_address, port, max_listeners, loggerBase)
+        super().__init__(
+            host_address,
+            port,
+            max_listeners,
+            logger,
+            on_message_received,
+            on_player_connected,
+            on_player_disconnected
+        )
 
     def perform_message_logic(self, data: Message):
         super().perform_message_logic(data)
+
+
+class ChessSocketServer(SocketServer):
+    pass
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     server = SocketServer()
     server.start_server(True)
-    while True:
-        inputValue = input('Enter message: ')
-
-        board = Board()
-        input_value = BoardState(board.map, board.game_board_size)
-        server.send_message(
-            Message(
-                value=ChessMessage(
-                    message_value=PydBoardState.from_board_state(input_value).json(),
-                    message_type=ChessMessageType.BOARD_STATE
-                ).json(),
-                message_type=MessageTypeBase.STR_MSG
-            )
-        )
+    server.stop_server()

@@ -11,10 +11,10 @@ from ChessEngine.Engine import Engine
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Player.IChessEngineUser import IChessEngineUser
 from ChessEngine.Player.Player import Player
-from TextualClient.ChessEngine.EngineUserEventBus import EngineUserEventBus
+from TextualClient.ChessEngine.SinglePlayerChessEngineUserEventBus import SinglePlayerChessEngineUserEventBus
 from TextualClient.ChessEngine.TextualAiEngineUser import TextualAiEngineUser
 from TextualClient.UI.Enums.GameModes import GameModes
-from TextualClient.UI.Services.ChessAppGameSettings import ChessAppGameSettings
+from TextualClient.UI.Services.ChessGameSettings import ChessGameSettings
 from TextualClient.UI.Services.ChessEngineService import ChessEngineService
 from TextualClient.UI.Services.PieceUpgradeService import PieceUpgradeService
 from TextualClient.UI.Widgets.GameCell import GameCell
@@ -26,7 +26,7 @@ from TextualClient.UI.Widgets.WinnerLabel import WinnerMessage
 
 
 class TextualChessGame(Screen):
-    __chess_app_game_settings_service: ChessAppGameSettings
+    __chess_app_game_settings_service: ChessGameSettings
     _is_mouse_down = False
     _PATTERN: Final = (-1, 1, 0, 0, 0)
     piece_upgrade_service: PieceUpgradeService
@@ -58,7 +58,7 @@ class TextualChessGame(Screen):
     def __init__(
             self,
             chess_engine_service: ChessEngineService,
-            chess_app_game_settings_service: ChessAppGameSettings,
+            chess_app_game_settings_service: ChessGameSettings,
             piece_upgrade_service: PieceUpgradeService
     ):
         super().__init__()
@@ -256,7 +256,7 @@ class TextualChessGame(Screen):
         self.query_one(GameHeader).moves = 0
         self.filled_cells.remove_class("filled")
 
-        engine_event_bus = EngineUserEventBus(self)
+        engine_event_bus = SinglePlayerChessEngineUserEventBus(self)
         match self.__chess_app_game_settings_service.game_mode:
             case GameModes.SINGLEPLAYER_VS_AI:
                 self.chess_engine_service.start_game(

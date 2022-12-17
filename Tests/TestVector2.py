@@ -1,13 +1,10 @@
+import json
 import unittest
 
-from ChessEngine.Pathfinding.Vector2 import Vector2
-
-from typing import List
-from typing import Any
 from dataclasses import dataclass
-import json
+from typing import List, Dict
 
-from ChessEngine.Pydantic.TupleToString import tuple_to_string
+import requests as requests
 
 
 @dataclass
@@ -62,55 +59,83 @@ class UserTweets:
 
     @staticmethod
     def from_dict(obj: any) -> 'UserTweets':
-        _data = [TweetData.from_dict(y) for y in obj.get("data")]
-        _meta = Meta.from_dict(obj.get("meta"))
-        return UserTweets(_data, _meta)
+        try:
+            _data = [TweetData.from_dict(y) for y in obj.get("data")]
+            _meta = Meta.from_dict(obj.get("meta"))
+            return UserTweets(_data, _meta)
+        except Exception as e:
+            print(e)
+            print(obj)
+            return None
 
 
-def test_parse(self):
-    data = {
-        'edit_history_tweet_ids': ['1603129273564266496'],
-        'public_metrics': {
-            'retweet_count': 0, 'reply_count': 0, 'like_count': 0, 'quote_count': 1
-        },
-        'author_id': '1516850014605266947',
-        'text': '#Flowcarbon #flow3rs #Giveaway  https://t.co/pvKUolH39j @GranaryFinance @p12 @rubicondefi',
-        'id': '1603129273564266496',
-        'created_at': '2022-12-14T20:46:18.000Z'
-    }
+@dataclass
+class AllTweets:
+    tweet_pages: List[UserTweets]
 
-    z = TweetData.from_dict(data)
-    print(z)
+    def add_tweets(self, incoming_dict_value: Dict) -> None:
+        _tweet_pages = UserTweets.from_dict(incoming_dict_value)
+        self.tweet_pages.append(_tweet_pages)
 
-class TestVector2(unittest.TestCase):
-    def test_addition(self):
-        test_vector2 = Vector2.Up() + Vector2.Up()
-        self.assertEqual(test_vector2.y, 2)
 
-    def test_multiplication(self):
-        test_vector2 = Vector2.Up() * 5
-        self.assertEqual(test_vector2.x, 0)
-        self.assertEqual(test_vector2.y, 5)
+class TestParse(unittest.TestCase):
+
+    def test_get_all_user_tweet_pages_combined(self) -> List[TweetData]:
+        all_tweets = []
+        user_tweets = UserTweets.from_dict(self.get_user_tweets())
+        all_tweets.extend(user_tweets.data)
+
+        while user_tweets.meta.next_token != 'None' and user_tweets.meta.next_token is not None:
+            user_tweets = UserTweets.from_dict(
+                self.get_user_tweets(
+                    user_tweets.meta.next_token
+                )
+            )
+            all_tweets.extend(user_tweets.data)
+
+        return all_tweets
+
+    @staticmethod
+    def get_user_tweets(pagination_token=None) -> Dict:
+        bearer_token = "AAAAAAAAAAAAAAAAAAAAAI55jgEAAAAAx2XbqTphUHttys43DnSnjg8KgZ8%3DD3IQaCGJ1M68QUWeAwK8FJf6Cc2azEfKQ4OQaCYn7nFYap53wZ"
+        pagination_token = '' if pagination_token is None else f'&pagination_token={pagination_token}'
+        time_line_query_params = f'max_results=100&tweet.fields=created_at,public_metrics,author_id{pagination_token}'
+        time_line = json.loads(
+            requests.get(
+                f'https://api.twitter.com/2/users/1280325738537914374/tweets?{time_line_query_params}',
+                headers={
+                    "Authorization": f"Bearer {bearer_token}",
+                    "User-Agent": "v2UserTweetsPython"
+                }
+            ).content.decode('utf-8')
+        )
+        return time_line
 
     def test(self):
-        t = (0, 1)
-        z = tuple_to_string(t)
-        assert z == '(0, 1)'
-
-    def test_parse(self):
-        data = {
-            'edit_history_tweet_ids': ['1603129273564266496'],
-            'public_metrics': {
-                'retweet_count': 0, 'reply_count': 0, 'like_count': 0, 'quote_count': 1
-            },
-            'author_id': '1516850014605266947',
-            'text': '#Flowcarbon #flow3rs #Giveaway  https://t.co/pvKUolH39j @GranaryFinance @p12 @rubicondefi',
-            'id': '1603129273564266496',
-            'created_at': '2022-12-14T20:46:18.000Z'
-        }
-
-        z = TweetData.from_dict(data)
-        print(z)
+        all_tweets = []
+        bearer_token = "AAAAAAAAAAAAAAAAAAAAAI55jgEAAAAAx2XbqTphUHttys43DnSnjg8KgZ8%3DD3IQaCGJ1M68QUWeAwK8FJf6Cc2azEfKQ4OQaCYn7nFYap53wZ"
+        user_tweets = UserTweets.from_dict(
+            json.loads(
+                requests.get(
+                    'https://api.twitter.com/2/users/1280325738537914374/tweets?max_results=100&tweet.fields=created_at,public_metrics,author_id',
+                    headers={"Authorization": f"Bearer {bearer_token}", "User-Agent": "v2UserTweetsPython"}
+                ).content.decode('utf-8')
+            )
+        )
+        all_tweets.extend(user_tweets.data)
+        while user_tweets.meta.next_token is not None and user_tweets.meta.next_token != 'None':
+            print('new page')
+            user_tweets = UserTweets.from_dict(
+                json.loads(
+                    requests.get(
+                        'https://api.twitter.com/2/users/1280325738537914374/tweets?max_results=100&tweet.fields=created_at,public_metrics,author_id&pagination_token=' +
+                        user_tweets.meta.next_token,
+                        headers={"Authorization": f"Bearer {bearer_token}", "User-Agent": "v2UserTweetsPython"}
+                    ).content.decode('utf-8')
+                )
+            )
+            all_tweets.extend(user_tweets.data)
+        print(all_tweets)
 
 
 if __name__ == '__main__':

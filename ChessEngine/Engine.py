@@ -9,6 +9,7 @@ from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from ChessEngine.Pieces.ChessPieces import ChessPieces
 from ChessEngine.Player.AI.AIEngineUser import AiEngineUser
 from ChessEngine.Player.ConsoleEngineUser import ConsoleEngineUser
+from ChessEngine.Player.IChessEngineUser import PlayerTurnStart, PlayerVictory
 from ChessEngine.Player.Player import Player
 
 
@@ -100,9 +101,11 @@ class Engine:
                             )
                         )
                         current_player.chessEngineUser.output_player_victory(
-                            current_player.id,
-                            move_result,
-                            self.__board
+                            PlayerVictory(
+                                current_player.id,
+                                move_result,
+                                self.__board
+                            )
                         )
                         self.__is_running = False
                         break
@@ -120,7 +123,7 @@ class Engine:
         chess_user.output_board_state(BoardState(self.__board.map, self.__board.game_board_size))
 
         # Emit player turn started event
-        chess_user.output_player_turn_started(current_player.id)
+        chess_user.output_player_turn_started(PlayerTurnStart(current_player.id))
         move_result: MoveResult
         while True:  # Loop until valid move by player
             all_paths_for_player = self.__board.get_all_paths_for_player(current_player.team)

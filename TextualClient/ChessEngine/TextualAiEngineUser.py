@@ -2,38 +2,35 @@ from typing import Dict, Tuple
 
 from ChessEngine.Board.AttackResult import AttackResult
 from ChessEngine.Board.Board import Board
+from ChessEngine.Board.BoardState import BoardState
 from ChessEngine.Board.MoveResult import MoveResult
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Pieces.ChessPieces import ChessPieces
 from ChessEngine.Player.AI.AIEngineUser import AiEngineUser
-from ChessEngine.Player.IChessEngineUser import IChessEngineUser
+from ChessEngine.Player.IChessEngineUser import IChessEngineUser, PlayerTurnStart
 from ChessEngine.Player.PlayerPathDict import PlayerPathDict
 from ChessEngine.Tile.Tile import Tile
-from TextualClient.ChessEngine.EngineUserEventBus import EngineUserEventBus
+from TextualClient.ChessEngine.SinglePlayerChessEngineUserEventBus import SinglePlayerChessEngineUserEventBus
 
 
 class TextualAiEngineUser(AiEngineUser):
-    engine_user_event_bus: EngineUserEventBus
+    engine_user_event_bus: SinglePlayerChessEngineUserEventBus
 
-    def __init__(self, engine_user_event_bus: EngineUserEventBus, board: Board):
+    def __init__(self, engine_user_event_bus: SinglePlayerChessEngineUserEventBus, board: Board):
         super().__init__(board, board.teams, 5)
         self.engine_user_event_bus = engine_user_event_bus
 
     def input_piece_can_be_upgraded(self) -> ChessPieces:
         return super().input_piece_can_be_upgraded()
 
-    def output_board_state(
-            self,
-            board: Dict[Tuple[int, int], Tile],
-            board_size: Tuple[int, int]
-    ) -> None:
+    def output_board_state(self, board_state: BoardState) -> None:
         self.engine_user_event_bus.on_output_player_move_result(
-            board
+            board_state.board
         )
 
-    def output_player_turn_started(self, player_id: int) -> None:
-        super().output_player_turn_started(player_id)
-        self.engine_user_event_bus.on_output_player_turn_started(player_id)
+    def output_player_turn_started(self, player_turn_start: PlayerTurnStart) -> None:
+        super().output_player_turn_started(player_turn_start)
+        self.engine_user_event_bus.on_output_player_turn_started(player_turn_start.player_id)
 
     def output_player_move_result(self, move_result: MoveResult) -> None:
         pass

@@ -3,10 +3,11 @@ from typing import Dict, Tuple
 
 from ChessEngine.Board import Board
 from ChessEngine.Board.AttackResult import AttackResult
+from ChessEngine.Board.BoardState import BoardState
 from ChessEngine.Board.MoveResult import MoveResult
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Pieces.ChessPieces import ChessPieces
-from ChessEngine.Player.IChessEngineUser import IChessEngineUser
+from ChessEngine.Player.IChessEngineUser import IChessEngineUser, PlayerTurnStart
 from ChessEngine.Player.PlayerPathDict import PlayerPathDict
 from ChessEngine.Debugging.PrintDebugger import PrintDebugger
 from ChessEngine.Tile.Tile import Tile
@@ -131,13 +132,13 @@ class ConsoleEngineUser(IChessEngineUser):
                 print('Invalid input. Please try again.')
                 print()
 
-    def output_board_state(self, board: Dict[Tuple[int, int], Tile], board_size: Tuple[int, int]) -> None:
+    def output_board_state(self, board_state: BoardState) -> None:
         ConsoleEngineUser.__clear()
-        PrintDebugger.print_board(board, board_size)
+        PrintDebugger.print_board(board_state.board, board_state.board_size)
 
-    def output_player_turn_started(self, player_id: int) -> None:
-        self.current_player_id = player_id
-        print('Player ' + str(player_id) + ' turn started')
+    def output_player_turn_started(self, player_turn_start: PlayerTurnStart) -> None:
+        self.current_player_id = player_turn_start.player_id
+        print('Player ' + str(player_turn_start.player_id) + ' turn started')
 
     def output_player_move_result(self, move_result: MoveResult) -> None:
         print('Move Succeeded: ' + str(move_result.success))

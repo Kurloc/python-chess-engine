@@ -1,6 +1,7 @@
 import logging.config
 from pathlib import Path
 
+
 try:
     logging.config.fileConfig(
         fname=Path('kce_exception_logger.conf'),

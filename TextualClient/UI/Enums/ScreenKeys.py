@@ -1,4 +1,5 @@
 class ScreenKeys:
+    SETTINGS = 'settings'
     MAIN_MENU = 'main-menu'
     TEST_TABLE = 'test-table'
     SINGLE_PLAYER_MENU = 'single-player-menu'

@@ -17,8 +17,7 @@ class MainMenuScreen(Screen):
         if button_id == "mp":
             self.app.push_screen(ScreenKeys.MULTIPLAYER_MENU)
         if button_id == "settings":
-            pass
-            # self.app.push_screen("") - do we need settings?
+            self.app.push_screen(ScreenKeys.SETTINGS)
         if button_id == "quit":
             self.app.exit()
 

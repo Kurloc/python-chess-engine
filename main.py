@@ -4,6 +4,7 @@ from TextualClient.UI.Enums.ScreenKeys import ScreenKeys
 from TextualClient.UI.Screens.JoinMultiplayerServerScreen import JoinMultiplayerServerScreen
 from TextualClient.UI.Screens.PlayersTable import PlayersTable
 from TextualClient.Sockets.TextualGameHostingEventBus import TextualGameHostingEventBus
+from TextualClient.UI.Screens.SettingsScreen import SettingsScreen
 from TextualClient.UI.Screens.TextualChessGame import TextualChessGame
 from TextualClient.UI.Screens.HelpScreen import Help
 from TextualClient.UI.Screens.MainMenuScreen import MainMenuScreen
@@ -48,6 +49,7 @@ if __name__ == "__main__":
                 game_hosting_event_bus,
                 textual_app_settings
             ),
+            ScreenKeys.SETTINGS: lambda: SettingsScreen(textual_app_settings),
             ScreenKeys.HELP: lambda: Help(),
             ScreenKeys.JOIN_GAME: lambda: JoinMultiplayerServerScreen()
         },

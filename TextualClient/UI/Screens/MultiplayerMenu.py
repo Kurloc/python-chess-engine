@@ -9,7 +9,7 @@ from TextualClient.UI.Services.ChessGameSettings import TextualAppSettings
 
 
 class MultiplayerMenu(ButtonMenuScreen):
-    __game_hosting_event_bus: TextualOnlinePlayerEventBus
+    __game_hosting_manager: TextualOnlinePlayerEventBus
     __textual_app_settings: TextualAppSettings
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
@@ -21,14 +21,14 @@ class MultiplayerMenu(ButtonMenuScreen):
             **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.__game_hosting_event_bus = game_hosting_event_bus
+        self.__game_hosting_manager = game_hosting_event_bus
         self.__textual_app_settings = textual_app_settings
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Event handler called when a button is pressed."""
         button_id = event.button.id
         if button_id == "host-game":
-            self.__game_hosting_event_bus.host_lobby(self.__textual_app_settings.player_name)
+            self.__game_hosting_manager.host_lobby(self.__textual_app_settings.player_name)
             self.app.push_screen(ScreenKeys.HOST_GAME)
         if button_id == "join-game":
             self.app.push_screen(ScreenKeys.JOIN_GAME)

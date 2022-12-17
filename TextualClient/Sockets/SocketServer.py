@@ -1,35 +1,45 @@
 import abc
+import json
 import logging
 import socket
 import threading
+import time
 from dataclasses import dataclass
 from typing import Any, Union
 
 from ChessEngine.Debugging.setup_logger import kce_exception_logger
+from TextualClient.Sockets.ChessMessage import ChessMessage
+from TextualClient.Sockets.ChessMessageType import ChessMessageType
+from TextualClient.Sockets.JoinGameMessage import JoinGameMessage
 from TextualClient.Sockets.Message import Message
 from TextualClient.Sockets.MessageTypeBase import MessageTypeBase
 
+
 @dataclass
 class OnMessageReceived:
-    callback: callable([Message, dict])
+    callback: callable([Message, Any, dict])
     kwargs: list[str]
 
-    def __init__(self, callback: callable([Message, dict]), kwargs: list[str]):
+    def __init__(self, callback: callable([Message, Any, dict]), kwargs: list[str]):
         self.callback = callback
         self.kwargs = kwargs
+
 
 @dataclass
 class OnMessageReceivedCallBack:
     on_message_received: OnMessageReceived
     kwarg_values: dict[str, Any]
 
+
 class SocketConnection(metaclass=abc.ABCMeta):
     address: str
     port: int
+    connected: bool = False
 
     def __init__(self, address: str, port: int):
         self.address = address
         self.port = port
+        self.connected = True
 
 
 class SocketServerBase(metaclass=abc.ABCMeta):
@@ -54,6 +64,10 @@ class SocketServerBase(metaclass=abc.ABCMeta):
     port: int
     host_address: str
     max_listeners: int
+
+    @property
+    def ipv6(self) -> str:
+        return self.__get_ip_6(socket.gethostname(), self.port)
 
     def __init__(
             self,
@@ -94,6 +108,8 @@ class SocketServerBase(metaclass=abc.ABCMeta):
 
         self.__msg_obj = msg
         self.__msg_outgoing_dirty = True
+        self.__logger.info('sending client msg')
+        self.__logger.info(msg)
 
     def start_server(self, run_in_background: bool = False):
         self.__running = True
@@ -115,17 +131,36 @@ class SocketServerBase(metaclass=abc.ABCMeta):
         self.__running = False
         self.__connections = {}
         for con in self.__connections:
-            self.__connections[con].close()
+            self._close_connection(con, self.__connections[con])
 
         if close_server:
             self.__server_socket.close()
 
+    def disconnect_client(self, address: str):
+        self.__logger.debug('Disconnecting client: ' + address)
+        self.__logger.debug('connections: ')
+        self.__logger.debug(self.__connections)
+        tgt_key = None
+        tgt_connection = None
+        for con_key in self.__connections:
+            con = self.__connections[con_key]
+            if con_key.address == address:
+                tgt_key = con_key
+                tgt_connection = con
+                break
+
+        if tgt_key is not None and tgt_connection is not None:
+            self.__logger.debug('Found client to disconnect: ' + address)
+            self._close_connection(tgt_key, tgt_connection)
+
     def _close_connection(self, conn: SocketConnection, sock: socket.socket):
-        self.__logger.debug("User disconnected!")
+        conn.connected = False
         newDict = self.__connections.copy()
         newDict.pop(conn)
         self.__connections = newDict
+        sock.shutdown(socket.SHUT_RDWR)
         sock.close()  # close the connection
+        self.__logger.debug(f"User: {conn.address}:{conn.port} has been disconnected.")
 
         if self.__check_for_on_player_disconnected:
             for callback in self.__on_player_disconnected:
@@ -160,9 +195,13 @@ class SocketServerBase(metaclass=abc.ABCMeta):
     def __message_loop(self):
         self.__logger.debug('Starting incoming / outgoing message loop')
         while self.__running:
+            time.sleep(.15)
             clean_outgoing = False
             for socket_connection in self.__connections:
                 connection = self.__connections[socket_connection]
+                if not socket_connection.connected:
+                    continue
+
                 try:
                     if self.__msg_outgoing_dirty:
                         clean_outgoing = True
@@ -207,6 +246,7 @@ class SocketServerBase(metaclass=abc.ABCMeta):
                                 kce_exception_logger.info(msg_receiver.on_message_received.callback)
                                 msg_receiver.on_message_received.callback(
                                     data,
+                                    self,
                                     kwargs
                                 )
                                 kce_exception_logger.info('==============================================')
@@ -229,6 +269,16 @@ class SocketServerBase(metaclass=abc.ABCMeta):
             self.__messaging_thread.start()
         else:
             self.__message_loop()
+
+    @staticmethod
+    def __get_ip_6(host, port=0):
+        # search for all addresses, but take only the v6 ones
+        alladdr = socket.getaddrinfo(host, port)
+        ip6 = filter(
+            lambda x: x[0] == socket.AF_INET6,
+            alladdr
+        )
+        return list(ip6)[0][4][0]
 
 
 class SocketServer(SocketServerBase):
@@ -264,4 +314,18 @@ class ChessSocketServer(SocketServer):
 if __name__ == '__main__':
     server = SocketServer()
     server.start_server(True)
-    server.stop_server()
+    while True:
+        inputValue = input('Enter message: ')
+        server.send_message(
+            Message(
+                value=json.dumps(
+                    ChessMessage(
+                        message_type=ChessMessageType.PLAYER_JOIN_LOBBY,
+                        message_value=json.dumps(
+                            JoinGameMessage('MichaelIsCool', server.ipv6).to_dict()
+                        )
+                    ).json()
+                ),
+                message_type=MessageTypeBase.STR_MSG
+            )
+        )

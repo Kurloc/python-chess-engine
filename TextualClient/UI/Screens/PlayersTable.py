@@ -4,18 +4,19 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Label
 from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from TextualClient.Sockets.PlayerLobby import PlayerLobby
+from TextualClient.Sockets.PlayerManagement import PlayerManagement
 from TextualClient.UI.Enums.ScreenKeys import ScreenKeys
 
 
 class PlayersTable(Screen):
-    players_lobby: PlayerLobby
+    __player_management: PlayerManagement
 
     def __init__(
             self,
-            players_lobby: PlayerLobby
+            player_management: PlayerManagement
     ):
         super().__init__()
-        self.players_lobby = players_lobby
+        self.__player_management = player_management
 
     def compose(self) -> ComposeResult:
         yield Container(
@@ -47,11 +48,18 @@ class PlayersTable(Screen):
         )
 
     def on_mount(self) -> None:
-        self.update_from_player_lobby()
+        self.__player_management \
+            .player_lobby \
+            .subscribe(lambda pl: self.update_from_player_lobby(pl))
+
+        player_lobby = self.__player_management.player_lobby.value
+        player_lobby.players.pop('1', None)
+        self.__player_management.player_lobby.on_next(player_lobby)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         match event.button.id:
             case 'go-back':
+                self.__player_management.end_lobby.on_next(True)
                 self.app.push_screen(ScreenKeys.MAIN_MENU)
             case 'player-two-kick-player':
                 kce_exception_logger.info('Kick player event detected')
@@ -59,9 +67,12 @@ class PlayersTable(Screen):
                 kce_exception_logger.info('\n')
                 self.__kick_player_two()
 
-    def update_from_player_lobby(self):
-        host_player = self.players_lobby.players.get('0')
-        client_player = self.players_lobby.players.get('1')
+    def update_from_player_lobby(self, player_lobby: PlayerLobby):
+        if player_lobby is None:
+            return
+
+        host_player = player_lobby.players.get('0')
+        client_player = player_lobby.players.get('1')
 
         player_one_name_label = self.query_one('#player-one-name', Label)
         player_one_name_address = self.query_one('#player-one-address', Label)
@@ -74,8 +85,7 @@ class PlayersTable(Screen):
             self.__on_player_two_join(client_player.name, client_player.address)
 
     def __kick_player_two(self):
-        self.__on_player_two_leave()
-        pass
+        self.__player_management.kick_player.on_next('1')
 
     def __on_player_two_join(self, player_name: str, player_address: str):
         skip_label_updates = False

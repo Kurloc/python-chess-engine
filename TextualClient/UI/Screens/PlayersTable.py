@@ -5,6 +5,8 @@ from textual.containers import Container
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Label
 from ChessEngine.Debugging.setup_logger import kce_exception_logger
+from TextualClient.UI.Enums.ScreenKeys import ScreenKeys
+
 
 class PlayersTable(Screen):
     def __init__(
@@ -44,11 +46,14 @@ class PlayersTable(Screen):
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == 'player-two-kick-player':
-            kce_exception_logger.info('Kick player event detected')
-            kce_exception_logger.info(event)
-            kce_exception_logger.info('\n')
-            self.kick_player_two()
+        match event.button.id:
+            case 'go-back':
+                self.app.push_screen(ScreenKeys.MAIN_MENU)
+            case 'player-two-kick-player':
+                kce_exception_logger.info('Kick player event detected')
+                kce_exception_logger.info(event)
+                kce_exception_logger.info('\n')
+                self.kick_player_two()
 
     def kick_player_two(self):
         self.on_player_two_leave()

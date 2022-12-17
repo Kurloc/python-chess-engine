@@ -12,7 +12,7 @@ class JoinMultiplayerServerScreen(ButtonMenuScreen):
         """Event handler called when a button is pressed."""
         button_id = event.button.id
         if button_id == "join-server":
-            self.app.push_screen(self._screens['join-server']())
+            self.app.push_screen('PlayersTable')
         if button_id == "go-back":
             self.app.pop_screen()
 

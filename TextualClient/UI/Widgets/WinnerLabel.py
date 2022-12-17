@@ -10,6 +10,8 @@ from textual.scroll_view import ScrollView
 from textual.widget import Widget
 from textual.widgets import Label, Static, Button
 
+from TextualClient.UI.Enums.ScreenKeys import ScreenKeys
+
 
 class WinnerMessage(Widget):
     """Widget to tell the user they have won."""
@@ -35,7 +37,7 @@ class WinnerMessage(Widget):
 
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == 'quit_button':
-            self.app.push_screen('MainMenu')
+            self.app.push_screen(ScreenKeys.MAIN_MENU)
 
     def show(
             self,

@@ -12,9 +12,9 @@ class MultiplayerMenu(ButtonMenuScreen):
         """Event handler called when a button is pressed."""
         button_id = event.button.id
         if button_id == "host-game":
-            self.app.push_screen(self._screens['host-game']())
+            self.app.push_screen('host-game')
         if button_id == "join-game":
-            self.app.push_screen(self._screens['join-game']())
+            self.app.push_screen('join-game')
         if button_id == "go-back":
             self.app.pop_screen()
 

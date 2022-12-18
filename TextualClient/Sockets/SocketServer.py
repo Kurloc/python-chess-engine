@@ -125,6 +125,7 @@ class SocketServerBase(metaclass=abc.ABCMeta):
         self.__connections = {}
         self.__handle_incoming_connections()
         self.__handle_message_loop(run_in_background)
+        self.__logger.info(f'Server started on {self.host_address}:{self.port}')
 
     def stop_server(self):
         close_server = self.__running is True
@@ -320,7 +321,7 @@ if __name__ == '__main__':
             Message(
                 value=json.dumps(
                     ChessMessage(
-                        message_type=ChessMessageType.PLAYER_JOIN_LOBBY,
+                        message_type=ChessMessageType.CLIENT_PLAYER_JOIN_HOST_LOBBY,
                         message_value=json.dumps(
                             JoinGameMessage('MichaelIsCool', server.ipv6).to_dict()
                         )

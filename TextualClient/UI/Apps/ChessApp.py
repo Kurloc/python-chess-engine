@@ -1,10 +1,12 @@
+import traceback
 from typing import Type, Callable
 
-from textual.app import App, ReturnType
+from textual.app import App
 from textual.driver import Driver
 from textual.screen import Screen
 from textual.widget import AwaitMount
 
+from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from TextualClient.UI.Services.ChessEngineService import ChessEngineService
 
 
@@ -38,10 +40,16 @@ class ChessApp(App[None]):
         self.__chess_engine_service = chess_engine_service
 
     def push_screen(self, screen: Screen | str) -> AwaitMount:
-        if isinstance(screen, Screen):
-            return super().push_screen(screen)
-        else:
-            return super().push_screen(self.SCREENS[screen]())
+        try:
+            if isinstance(screen, Screen):
+                return super().push_screen(screen)
+            else:
+                return super().push_screen(self.SCREENS[screen]())
+        except Exception as e:
+            tb = traceback.format_exc()
+            kce_exception_logger.exception(e)
+            kce_exception_logger.warning(tb)
+        return super().push_screen(self.SCREENS[self.__init_screen_key]())
 
     def on_mount(self) -> None:
         """Set up the application on startup."""

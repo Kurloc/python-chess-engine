@@ -4,8 +4,10 @@ import socket
 import threading
 import time
 import traceback
-from abc import abstractmethod
 from typing import Self, cast, Tuple
+
+from reactivex.subject import BehaviorSubject
+
 from ChessEngine.Board.AttackResult import AttackResult
 from ChessEngine.Board.Board import Board
 from ChessEngine.Board.BoardState import BoardState
@@ -35,6 +37,11 @@ class SocketClient:
     __msg_cursor: int = 0
     __msg_capacity: int = 10
     __msgs_received: list = [10]
+    __msg_behavior_subject: BehaviorSubject[str]
+
+    @property
+    def msgs_behavior_subject(self) -> BehaviorSubject[str]:
+        return self.__msg_behavior_subject
 
     def __init__(
             self,
@@ -42,6 +49,7 @@ class SocketClient:
             port: int = 9999,
             logger: logging.Logger = kce_exception_logger
     ):
+        self.__msg_behavior_subject = BehaviorSubject('')
         self.__msg_incoming_cache = Message(value='\0', message_type=MessageTypeBase.ACK)
         self.__host = host_name
         self.__port = port
@@ -67,10 +75,6 @@ class SocketClient:
         self.__start_messaging_loop()
         return self
 
-    @abstractmethod
-    def handle_parsed_json_message(self, json_string: str):
-        print('Received from server: \n' + json_string)
-
     def __start_messaging_loop(self):
         # Only call this function once
         self.__messaging_thread = threading.Thread(target=self.__message_loop)
@@ -92,7 +96,7 @@ class SocketClient:
             incoming_value = None
             try:
                 incoming_value = self.__socket.recv(642560)
-                print(incoming_value)
+                # print(incoming_value)
             except:
                 pass
 
@@ -109,10 +113,9 @@ class SocketClient:
                         o = 0
                         for dec in decoded_values:
                             if o % 2 == 0:
-                                dec += '}'
+                                final_decoded_values.append(dec + '}')
                             else:
-                                dec = '{' + dec
-                            final_decoded_values.append(dec)
+                                final_decoded_values.append('{' + dec)
                             o += 1
 
                     else:
@@ -121,27 +124,28 @@ class SocketClient:
                     self.__msg_incoming_dirty = True
                     for msg in final_decoded_values:
                         try:
+                            self.__logger.debug(f'Incoming message: {msg}')
                             self.__msg_incoming_cache = Message.parse_raw(msg)
                         except:
-                            print('Failed to parse message')
-                            print(traceback.format_exc())
-                            print('============================')
-                            print(msg)
-                            print('============================')
+                            self.__logger.warning('Failed to parse message')
+                            self.__logger.warning(traceback.format_exc())
 
                         match self.__msg_incoming_cache.message_type:
                             case MessageTypeBase.DISCONNECT:
                                 pass
                             case MessageTypeBase.STR_MSG:
-                                self.handle_parsed_json_message(self.__msg_incoming_cache.value)
+                                self.__handle_incoming_msg(self.__msg_incoming_cache)
+                                x = self.__msg_incoming_cache.value
+                                self.__logger.debug('Received string message:\n%s', x)
+                                self.__msg_behavior_subject.on_next(x)
                             case MessageTypeBase.ACK:
                                 pass
                 except:
-                    print('Failed to parse message')
-                    print(traceback.format_exc())
-                    print('============================')
-                    print(incoming_value)
-                    print('============================')
+                    # print('Failed to parse message')
+                    # print(traceback.format_exc())
+                    # print('============================')
+                    # print(incoming_value)
+                    # print('============================')
                     self.__msg_incoming_cache = None
                     self.__msg_incoming_dirty = False
 
@@ -160,10 +164,10 @@ class SocketClient:
                         self.__socket.send(msg.encode())  # send message
                         self.__msg_obj = None
                     except ConnectionAbortedError:
-                        print(
-                            'Connection has been aborted. Host most likely closed your connection,'
-                            ' or you were unable to reach the host when you sent your message.'
-                        )
+                        # print(
+                        #     'Connection has been aborted. Host most likely closed your connection,'
+                        #     ' or you were unable to reach the host when you sent your message.'
+                        # )
                         self.__running = False
                         self.__socket.close()
                         break
@@ -185,25 +189,7 @@ class SocketClient:
 
 
 class ChessSocketClient(SocketClient):
-    def handle_parsed_json_message(self, json_string: str):
-        chess_message = ChessMessage.parse_raw(json.loads(json_string))
-        match chess_message.message_type:
-            case ChessMessageType.MOVE.value:
-                pass
-            case ChessMessageType.PLAYER_TURN_STARTED.value:
-                player_turn_start = PlayerTurnStart.from_dict(json.loads(chess_message.message_value))
-            case ChessMessageType.INVALID_PLAYER_MOVE.value:
-                attack_result = AttackResult.from_dict(json.loads(chess_message.message_value))
-            case ChessMessageType.INPUT_INPUT_PIECE_CAN_BE_UPGRADED.value:
-                pass
-            case ChessMessageType.OUTPUT_INPUT_PIECE_CAN_BE_UPGRADED.value:
-                pass
-            case ChessMessageType.PLAYER_JOIN_LOBBY.value:
-                join_game_message = JoinGameMessage.from_dict(
-                    json.loads(chess_message.message_value)
-                )
-                print('host info', join_game_message.player_name, join_game_message.player_address)
-                print(f'player lobby info {join_game_message}')
+    pass
 
 
 def from_json_player_moves(player_moves: str) -> dict[tuple[int, int], PlayerPathDict]:
@@ -214,7 +200,6 @@ def from_json_player_moves(player_moves: str) -> dict[tuple[int, int], PlayerPat
         working_key = cast(Tuple[int, int], string_to_tuple(key))
         return_dict[working_key] = PlayerPathDict.from_dict(item)
 
-    print(working_dict)
     return return_dict
 
 
@@ -232,6 +217,11 @@ if __name__ == '__main__':
         .connect() \
         .start()
 
+    def debug(value: str):
+        print(value)
+
+    client.msgs_behavior_subject.subscribe(debug)
+
     while True:
         inputValue = input('Enter message: ')
         board = Board()
@@ -241,7 +231,7 @@ if __name__ == '__main__':
             Message(
                 value=json.dumps(
                     ChessMessage(
-                        message_type=ChessMessageType.PLAYER_JOIN_LOBBY,
+                        message_type=ChessMessageType.CLIENT_PLAYER_JOIN_HOST_LOBBY,
                         message_value=json.dumps(
                             JoinGameMessage('MichaelIsCool', client.ipv6).to_dict()
                         )

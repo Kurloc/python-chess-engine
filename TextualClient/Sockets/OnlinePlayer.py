@@ -11,3 +11,10 @@ class OnlinePlayer:
             'name': self.name,
             'address': self.address
         }
+
+    @staticmethod
+    def from_dict(incoming_value: dict):
+        return OnlinePlayer(
+            incoming_value.get('name'),
+            incoming_value.get('address')
+        )

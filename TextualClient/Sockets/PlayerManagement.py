@@ -1,4 +1,4 @@
-from reactivex import Subject
+from reactivex import Subject, interval
 from reactivex.subject import BehaviorSubject
 
 from TextualClient.Sockets.PlayerLobby import PlayerLobby

@@ -2,6 +2,7 @@ from textual.app import ComposeResult
 from textual.containers import Container
 from textual.widgets import Button, Footer, Header
 
+from TextualClient.Sockets.TextualGameHostingEventBus import TextualGameHostingEventBus
 from TextualClient.UI.Enums.ScreenKeys import ScreenKeys
 from TextualClient.UI.Screens.Generic.ButtonMenuScreen import ButtonMenuScreen
 from TextualClient.Sockets.TextualOnlinePlayerEventBus import TextualOnlinePlayerEventBus
@@ -9,13 +10,13 @@ from TextualClient.UI.Services.ChessGameSettings import TextualAppSettings
 
 
 class MultiplayerMenu(ButtonMenuScreen):
-    __game_hosting_manager: TextualOnlinePlayerEventBus
+    __game_hosting_manager: TextualGameHostingEventBus
     __textual_app_settings: TextualAppSettings
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
     def __init__(
             self,
-            game_hosting_event_bus: TextualOnlinePlayerEventBus,
+            game_hosting_event_bus: TextualGameHostingEventBus,
             textual_app_settings: TextualAppSettings,
             *args,
             **kwargs

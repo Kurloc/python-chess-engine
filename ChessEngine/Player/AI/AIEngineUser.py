@@ -1,3 +1,4 @@
+import time
 from typing import Dict, Tuple, List
 
 from ChessEngine.Board import Board

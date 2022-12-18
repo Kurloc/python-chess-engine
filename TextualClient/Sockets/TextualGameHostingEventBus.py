@@ -48,7 +48,7 @@ class TextualGameHostingEventBus(TextualOnlinePlayerEventBus):
         kce_exception_logger.info('=============================================')
         chessMessage = ChessMessage.parse_raw(message_value_dict)
         match chessMessage.message_type:
-            case ChessMessageType.PLAYER_JOIN_LOBBY.value:
+            case ChessMessageType.CLIENT_PLAYER_JOIN_HOST_LOBBY.value:
                 join_game_message = JoinGameMessage.from_dict(
                     json.loads(chessMessage.message_value)
                 )
@@ -63,11 +63,19 @@ class TextualGameHostingEventBus(TextualOnlinePlayerEventBus):
                     Message(
                         value=json.dumps(
                             ChessMessage(
-                                message_type=ChessMessageType.PLAYER_JOIN_LOBBY,
+                                message_type=ChessMessageType.CLIENT_PLAYER_JOIN_LOBBY,
                                 message_value=json.dumps(
-                                    JoinGameMessage(
-                                        str(host_player.name),
-                                        str(host_player.address)
+                                    PlayerLobby(
+                                        {
+                                            '0': OnlinePlayer(
+                                                str(host_player.name),
+                                                str(host_player.address)
+                                            ),
+                                            '1': OnlinePlayer(
+                                                join_game_message.player_name,
+                                                join_game_message.player_address
+                                            )
+                                        }
                                     ).to_dict()
                                 )
                             ).json()
@@ -96,7 +104,7 @@ class TextualGameHostingEventBus(TextualOnlinePlayerEventBus):
 
         player_lobby.players['0'] = OnlinePlayer(
             player_name,
-            f'{self.chess_socket_server.host_address}:{self.chess_socket_server.port}'
+            f'{self.chess_socket_server.host_address}'
         )
         self.update_player_lobby(player_lobby)
 

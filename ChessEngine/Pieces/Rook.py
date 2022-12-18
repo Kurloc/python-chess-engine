@@ -11,12 +11,12 @@ class Rook(IPiece):
     __move_directions: List[Move]
 
     def __init__(self, team: Team, piece_id: int = None):
-        super().__init__(team, piece_id)
         self.__move_directions = []
         self.__move_directions.append(Move(Vector2.Up(), self.int_inf))
         self.__move_directions.append(Move(Vector2.Down(), self.int_inf))
         self.__move_directions.append(Move(Vector2.Left(), self.int_inf))
         self.__move_directions.append(Move(Vector2.Right(), self.int_inf))
+        super().__init__(team, piece_id)
 
     @property
     def chess_piece(self) -> ChessPieces:

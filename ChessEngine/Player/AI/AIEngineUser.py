@@ -2,13 +2,14 @@ from typing import Dict, Tuple, List
 
 from ChessEngine.Board import Board
 from ChessEngine.Board.AttackResult import AttackResult
+from ChessEngine.Board.BoardState import BoardState
 from ChessEngine.Board.MoveResult import MoveResult
 from ChessEngine.Pathfinding.MoveTree.LeafResult import LeafResult
 from ChessEngine.Pathfinding.MoveTree.MoveTreeHead import MoveTreeHead
 from ChessEngine.Pathfinding.MoveTree.MoveTreeLeaf import MoveTreeLeaf
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Pieces.ChessPieces import ChessPieces
-from ChessEngine.Player.IChessEngineUser import IChessEngineUser
+from ChessEngine.Player.IChessEngineUser import IChessEngineUser, PlayerTurnStart
 from ChessEngine.Player.PlayerPathDict import PlayerPathDict
 from ChessEngine.Player.Team import Team
 from ChessEngine.Debugging.PrintDebugger import PrintDebugger
@@ -42,11 +43,11 @@ class AiEngineUser(IChessEngineUser):
     def input_piece_can_be_upgraded(self) -> ChessPieces:
         return ChessPieces.QUEEN
 
-    def output_board_state(self, board: Dict[Tuple[int, int], Tile], board_size: Tuple[int, int]) -> None:
-        PrintDebugger.print_board(board, board_size)
+    def output_board_state(self, board_state: BoardState) -> None:
+        PrintDebugger.print_board(board_state.board, board_state.board_size)
 
-    def output_player_turn_started(self, player_id: int) -> None:
-        self.current_player_id = player_id
+    def output_player_turn_started(self, player_turn_start: PlayerTurnStart) -> None:
+        self.current_player_id = player_turn_start.player_id
         print('bot turn started')
 
     def output_player_move_result(self, move_result: MoveResult) -> None:

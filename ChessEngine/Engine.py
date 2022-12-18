@@ -3,11 +3,13 @@ from threading import Thread
 from typing import List
 
 from ChessEngine.Board.Board import Board
+from ChessEngine.Board.BoardState import BoardState
 from ChessEngine.Board.MoveResult import MoveResult
 from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from ChessEngine.Pieces.ChessPieces import ChessPieces
 from ChessEngine.Player.AI.AIEngineUser import AiEngineUser
 from ChessEngine.Player.ConsoleEngineUser import ConsoleEngineUser
+from ChessEngine.Player.IChessEngineUser import PlayerTurnStart, PlayerVictory
 from ChessEngine.Player.Player import Player
 
 
@@ -79,8 +81,11 @@ class Engine:
         """Stop the thread, if we get an exception we don't care"""
         try:
             self.__game_thread.join()
-        except Exception:
-            return
+        except Exception as e:
+            tb = traceback.format_exc()
+            kce_exception_logger.exception(e)
+            kce_exception_logger.warning(tb)
+            raise
 
     def __start_game_thread(self):
         try:
@@ -90,13 +95,17 @@ class Engine:
                     move_result = self.__handle_player_move(current_player)
                     if move_result.game_state.game_over:
                         current_player.chessEngineUser.output_board_state(
-                            self.__board.map,
-                            self.__board.game_board_size
+                            BoardState(
+                                self.__board.map,
+                                self.__board.game_board_size
+                            )
                         )
                         current_player.chessEngineUser.output_player_victory(
-                            current_player.id,
-                            move_result,
-                            self.__board
+                            PlayerVictory(
+                                current_player.id,
+                                move_result,
+                                self.__board
+                            )
                         )
                         self.__is_running = False
                         break
@@ -111,10 +120,10 @@ class Engine:
     def __handle_player_move(self, current_player: Player):
         chess_user = current_player.chessEngineUser
         # Emit board state
-        chess_user.output_board_state(self.__board.map, self.__board.game_board_size)
+        chess_user.output_board_state(BoardState(self.__board.map, self.__board.game_board_size))
 
         # Emit player turn started event
-        chess_user.output_player_turn_started(current_player.id)
+        chess_user.output_player_turn_started(PlayerTurnStart(current_player.id))
         move_result: MoveResult
         while True:  # Loop until valid move by player
             all_paths_for_player = self.__board.get_all_paths_for_player(current_player.team)

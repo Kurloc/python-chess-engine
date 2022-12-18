@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Tuple
+
 
 @dataclass
 class Vector2:
@@ -64,6 +66,10 @@ class Vector2:
     @staticmethod
     def DownRight() -> Vector2:
         return Vector2Cache.downRight
+
+    @staticmethod
+    def from_tuple(tup: Tuple[int, int]) -> Vector2:
+        return Vector2(tup[0], tup[1])
 
 
 class Vector2Cache:

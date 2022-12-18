@@ -10,6 +10,36 @@ from ChessEngine.Player.PlayerPathDict import PlayerPathDict
 class ChessEngineService:
     __board: Board
     game_running = False
+    piece_maps = {
+        'unicode': {
+        "1_1": "♙",
+        "1_2": "♖",
+        "1_3": "♘",
+        "1_4": "♗",
+        "1_5": "♕",
+        "1_6": "♔",
+        "2_1": "♟",
+        "2_2": "♜",
+        "2_3": "♞",
+        "2_4": "♝",
+        "2_5": "♛",
+        "2_6": "♚"
+    },
+        'ascii': {
+            "1_1": "p",
+            "1_2": "r",
+            "1_3": "n",
+            "1_4": "♗",
+            "1_5": "♕",
+            "1_6": "♔",
+            "2_1": "P",
+            "2_2": "R",
+            "2_3": "N",
+            "2_4": "B",
+            "2_5": "Q",
+            "2_6": "K"
+        }
+    }
     chess_piece_map = {
         "1_1": "♙",
         "1_2": "♖",

@@ -1,3 +1,5 @@
+import traceback
+
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.screen import Screen
@@ -30,12 +32,25 @@ class PlayersTable(Screen):
                 # row 1
                 Label("Player 1", id='player-one-name', classes='table-cell row-1'),
                 Label("127.0.0.1", id='player-one-address', classes='table-cell row-1'),
-                Label("", classes='table-cell row-1'),
+                Label("", id='player-one-kick-player', classes='table-cell row-1'),
 
                 # row 2
-                Label("Player 2", id='player-two-name', classes='table-cell row-2'),
-                Label("127.0.0.1", id='player-two-address', classes='table-cell row-2'),
-                Button("Kick", id='player-two-kick-player', variant="warning", classes='table-cell row-2'),
+                Label(
+                    "Player 2",
+                    id='player-two-name',
+                    classes='table-cell row-2 hidden-player'
+                ),
+                Label(
+                    "127.0.0.1",
+                    id='player-two-address',
+                    classes='table-cell row-2 hidden-player'
+                ),
+                Button(
+                    id='player-two-kick-player',
+                    label="Kick",
+                    variant="warning",
+                    classes='table-cell row-2 hidden-player'
+                ),
                 id='player-table-container'
             ),
             Container(
@@ -48,6 +63,7 @@ class PlayersTable(Screen):
         )
 
     def on_mount(self) -> None:
+        self.__on_player_two_leave()
         self.__player_management \
             .player_lobby \
             .subscribe(lambda pl: self.update_from_player_lobby(pl))
@@ -71,23 +87,50 @@ class PlayersTable(Screen):
         if player_lobby is None:
             return
 
-        host_player = player_lobby.players.get('0')
-        client_player = player_lobby.players.get('1')
+        try:
+            host_player = player_lobby.players.get('0')
+            client_player = player_lobby.players.get('1')
 
-        player_one_name_label = self.query_one('#player-one-name', Label)
-        player_one_name_address = self.query_one('#player-one-address', Label)
-        player_one_name_label.update(str(host_player.name))
-        player_one_name_address.update(str(host_player.address))
+            player_one_name_label = self.query_one('#player-one-name', Label)
+            player_one_name_address = self.query_one('#player-one-address', Label)
+            player_one_kick_button = self.query_one('#player-one-kick-player', Label)
+            player_one_name_label.update(str(host_player.name))
+            player_one_name_address.update(str(host_player.address))
 
-        if client_player is None:
-            self.__on_player_two_leave()
-        else:
-            self.__on_player_two_join(client_player.name, client_player.address)
+            if host_player.is_local_player:
+                player_one_name_label.add_class('local-player')
+                player_one_name_address.add_class('local-player')
+                player_one_kick_button.add_class('local-player')
+                kce_exception_logger.info('host is local player!')
+            else:
+                player_one_name_label.remove_class('local-player')
+                player_one_name_address.remove_class('local-player')
+                player_one_kick_button.remove_class('local-player')
+
+                kce_exception_logger.info('host is not local player!')
+
+            if client_player is None:
+                self.__on_player_two_leave()
+            else:
+                self.__on_player_two_join(
+                    client_player.name,
+                    client_player.address,
+                    client_player.is_local_player
+                )
+        except Exception as e:
+            tb = traceback.format_exc()
+            kce_exception_logger.exception(e)
+            kce_exception_logger.warning(tb)
 
     def __kick_player_two(self):
         self.__player_management.kick_player.on_next('1')
 
-    def __on_player_two_join(self, player_name: str, player_address: str):
+    def __on_player_two_join(
+            self,
+            player_name: str,
+            player_address: str,
+            is_local_player: bool
+    ):
         skip_label_updates = False
         if player_name is None or player_address is None or player_name == '' or player_address == '':
             skip_label_updates = True
@@ -95,9 +138,23 @@ class PlayersTable(Screen):
         player_two_name_label = self.query_one('#player-two-name', Label)
         player_two_name_address = self.query_one('#player-two-address', Label)
         player_two_name_kick_button = self.query_one('#player-two-kick-player', Button)
+        start_game_button = self.query_one('#start-game', Button)
         if not skip_label_updates:
             player_two_name_label.update(player_name)
             player_two_name_address.update(player_address)
+
+        if is_local_player:
+            player_two_name_label.add_class('local-player')
+            player_two_name_address.add_class('local-player')
+            player_two_name_kick_button.label = 'Ready'
+            player_two_name_kick_button.variant = 'success'
+            start_game_button.styles.visibility = 'hidden'
+        else:
+            player_two_name_label.remove_class('local-player')
+            player_two_name_address.remove_class('local-player')
+            player_two_name_kick_button.label = 'Kick'
+            player_two_name_kick_button.variant = 'warning'
+            start_game_button.styles.visibility = 'visible'
 
         player_two_name_label.styles.visibility = 'visible'
         player_two_name_address.styles.visibility = 'visible'

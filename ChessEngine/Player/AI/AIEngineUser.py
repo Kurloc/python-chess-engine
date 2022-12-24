@@ -10,7 +10,7 @@ from ChessEngine.Pathfinding.MoveTree.MoveTreeHead import MoveTreeHead
 from ChessEngine.Pathfinding.MoveTree.MoveTreeLeaf import MoveTreeLeaf
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Pieces.ChessPieces import ChessPieces
-from ChessEngine.Player.IChessEngineUser import IChessEngineUser, PlayerTurnStart
+from ChessEngine.Player.IChessEngineUser import IChessEngineUser, PlayerTurnStart, PlayerVictory
 from ChessEngine.Player.PlayerPathDict import PlayerPathDict
 from ChessEngine.Player.Team import Team
 from ChessEngine.Debugging.PrintDebugger import PrintDebugger
@@ -59,12 +59,12 @@ class AiEngineUser(IChessEngineUser):
     def output_invalid_player_move(self, attack_result: AttackResult) -> None:
         print('Move made was illegal, reason: ' + attack_result.board_event_type.name)
 
-    def output_player_victory(self, winning_player_id: int, move_result: MoveResult, board: Board) -> None:
-        PrintDebugger.print_board(board.map, board.game_board_size)
-        print('Player ' + str(winning_player_id) + ' has won the game!')
+    def output_player_victory(self, player_victory: PlayerVictory) -> None:
+        PrintDebugger.print_board(player_victory.board.map, player_victory.board.game_board_size)
+        print('Player ' + str(player_victory.winning_player_id) + ' has won the game!')
         replay = input('Press enter to exit. Or enter \'save_history\' to save the replay history of the game.')
         if replay == 'save_history':
-            board.save_replay_history()
+            player_victory.board.save_replay_history()
 
     def build_move_tree(
             self,

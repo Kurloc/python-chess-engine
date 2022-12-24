@@ -1,5 +1,7 @@
 import json
+import traceback
 
+from reactivex.operators import take_until, first
 
 from ChessEngine.Board.AttackResult import AttackResult
 from ChessEngine.Debugging.setup_logger import kce_exception_logger
@@ -14,10 +16,12 @@ from TextualClient.Sockets.PlayerLobby import PlayerLobby
 from TextualClient.Sockets.PlayerManagement import PlayerManagement
 from TextualClient.Sockets.SocketClient import ChessSocketClient
 from TextualClient.Sockets.SocketServer import SocketServer
-from TextualClient.Sockets.TextualOnlinePlayerEventBus import TextualOnlinePlayerEventBus
+from TextualClient.Sockets.ITextualOnlineService import ITextualOnlineService
+from TextualClient.UI.Services.ChessGameSettings import TextualAppSettings
 
 
-class TextualGameClientEventBus(TextualOnlinePlayerEventBus):
+class TextualOnlineClientService(ITextualOnlineService):
+    __textual_settings_service: TextualAppSettings
     __player_management: PlayerManagement
     chess_socket_server: SocketServer
 
@@ -25,11 +29,13 @@ class TextualGameClientEventBus(TextualOnlinePlayerEventBus):
     def player_lobby(self) -> PlayerLobby:
         return self.__player_management.player_lobby.value
 
-    def __init__(self, player_management: PlayerManagement):
+    def __init__(self, player_management: PlayerManagement, textual_app_settings: TextualAppSettings):
+        self.__textual_settings_service = textual_app_settings
         self.chess_socket_server = SocketServer()
         self.__player_management = player_management
         self.__player_management \
             .kick_player \
+            .pipe(take_until(self.__player_management.end_lobby)) \
             .subscribe(lambda player_id: self.on_player_leave_lobby(player_id))
 
     def update_player_lobby(self, player_lobby: PlayerLobby):
@@ -48,17 +54,23 @@ class TextualGameClientEventBus(TextualOnlinePlayerEventBus):
                 {
                     '0': OnlinePlayer(
                         player_name,
-                        self.chess_socket_server.host_address
+                        self.chess_socket_server.host_address,
+                        True
                     )
                 }
             )
             self.__player_management.player_lobby.on_next(player_lobby)
 
         client = ChessSocketClient(server_address, server_port)
-
         client \
             .msgs_behavior_subject \
+            .pipe(take_until(self.__player_management.end_lobby)) \
             .subscribe(lambda msg: self.handle_lobby_messages(msg))
+
+        self.__player_management \
+            .end_lobby \
+            .pipe(first()) \
+            .subscribe(lambda msg: client.disconnect_from_host())
 
         client \
             .connect() \
@@ -78,32 +90,40 @@ class TextualGameClientEventBus(TextualOnlinePlayerEventBus):
             )
         )
 
-
     def handle_lobby_messages(self, json_string: str):
         kce_exception_logger.debug(f'handle_lobby_messages:\n {json_string}')
         if json_string is None or len(json_string.strip()) == 0:
             return
 
-        chess_message = ChessMessage.parse_raw(json.loads(json_string))
-        match chess_message.message_type:
-            case ChessMessageType.MOVE.value:
-                pass
-            case ChessMessageType.PLAYER_TURN_STARTED.value:
-                player_turn_start = PlayerTurnStart.from_dict(json.loads(chess_message.message_value))
-            case ChessMessageType.INVALID_PLAYER_MOVE.value:
-                attack_result = AttackResult.from_dict(json.loads(chess_message.message_value))
-            case ChessMessageType.INPUT_INPUT_PIECE_CAN_BE_UPGRADED.value:
-                pass
-            case ChessMessageType.OUTPUT_INPUT_PIECE_CAN_BE_UPGRADED.value:
-                pass
-            case ChessMessageType.CLIENT_PLAYER_JOIN_LOBBY.value:
-                player_lobby = PlayerLobby.from_dict(
-                    json.loads(chess_message.message_value)
-                )
-                self.__player_management.player_lobby.on_next(player_lobby)
+        try:
+            chess_message = ChessMessage.parse_raw(json.loads(json_string))
+            match chess_message.message_type:
+                case ChessMessageType.MOVE.value:
+                    pass
+                case ChessMessageType.PLAYER_TURN_STARTED.value:
+                    player_turn_start = PlayerTurnStart.from_dict(json.loads(chess_message.message_value))
+                case ChessMessageType.INVALID_PLAYER_MOVE.value:
+                    attack_result = AttackResult.from_dict(json.loads(chess_message.message_value))
+                case ChessMessageType.INPUT_INPUT_PIECE_CAN_BE_UPGRADED.value:
+                    pass
+                case ChessMessageType.OUTPUT_INPUT_PIECE_CAN_BE_UPGRADED.value:
+                    pass
+                case ChessMessageType.CLIENT_PLAYER_JOIN_LOBBY.value:
+                    player_lobby = PlayerLobby.from_dict(
+                        json.loads(chess_message.message_value)
+                    )
+                    for player_key in player_lobby.players:
+                        player = player_lobby.players[player_key]
+                        player.is_local_player = player_key == '1'
 
-    def on_player_join_lobby(self, player_name: str, player_address):
-        self.player_lobby.players['1'] = OnlinePlayer(player_name, player_address)
+                    self.__player_management.player_lobby.on_next(player_lobby)
+        except Exception as e:
+            tb = traceback.format_exc()
+            kce_exception_logger.exception(e)
+            kce_exception_logger.warning(tb)
+
+    def on_player_join_lobby(self, player_name: str, player_address: str, is_local_player: bool):
+        self.player_lobby.players['1'] = OnlinePlayer(player_name, player_address, is_local_player)
         self.update_player_lobby(self.player_lobby)
 
     def on_player_leave_lobby(self, player_index: str):
@@ -116,3 +136,4 @@ class TextualGameClientEventBus(TextualOnlinePlayerEventBus):
             self.chess_socket_server.disconnect_client(player_to_pop.address)
             self.player_lobby.players.pop(player_index)
             self.update_player_lobby(self.player_lobby)
+

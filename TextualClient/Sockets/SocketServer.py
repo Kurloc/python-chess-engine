@@ -15,19 +15,23 @@ from TextualClient.Sockets.Message import Message
 from TextualClient.Sockets.MessageTypeBase import MessageTypeBase
 
 
-@dataclass
-class OnMessageReceived:
-    callback: callable([Message, Any, dict])
-    kwargs: list[str]
+class SocketServerBase(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def on_message(self, data: Message) -> None:
+        pass
 
-    def __init__(self, callback: callable([Message, Any, dict]), kwargs: list[str]):
-        self.callback = callback
-        self.kwargs = kwargs
+    @abc.abstractmethod
+    def send_message(self, msg: Message) -> None:
+        pass
+
+    @abc.abstractmethod
+    def disconnect_client(self, address: str) -> None:
+        pass
 
 
 @dataclass
 class OnMessageReceivedCallBack:
-    on_message_received: OnMessageReceived
+    on_message_received: callable([SocketServerBase, Message, dict])
     kwarg_values: dict[str, Any]
 
 
@@ -42,7 +46,7 @@ class SocketConnection(metaclass=abc.ABCMeta):
         self.connected = True
 
 
-class SocketServerBase(metaclass=abc.ABCMeta):
+class SocketServer(SocketServerBase):
     __update_thread: threading.Thread
     __messaging_thread: threading.Thread
 
@@ -67,7 +71,7 @@ class SocketServerBase(metaclass=abc.ABCMeta):
 
     @property
     def ipv6(self) -> str:
-        return self.__get_ip_6(socket.gethostname(), self.port)
+        return self._get_ip_6(socket.gethostname(), self.port)
 
     def __init__(
             self,
@@ -98,8 +102,7 @@ class SocketServerBase(metaclass=abc.ABCMeta):
         self.__check_for_on_player_connected: bool = len(self.__on_player_connected) > 0
         self.__check_for_on_player_disconnected: bool = len(self.__on_player_disconnected) > 0
 
-    @abc.abstractmethod
-    def perform_message_logic(self, data: Message):
+    def on_message(self, data: Message):
         self.__logger.debug([data.value, str(data.message_type)])
 
     def send_message(self, msg: Message):
@@ -136,6 +139,9 @@ class SocketServerBase(metaclass=abc.ABCMeta):
 
         if close_server:
             self.__server_socket.close()
+
+        self.__update_thread.join(1)
+        self.__messaging_thread.join(1)
 
     def disconnect_client(self, address: str):
         self.__logger.debug('Disconnecting client: ' + address)
@@ -231,34 +237,24 @@ class SocketServerBase(metaclass=abc.ABCMeta):
                     continue
 
                 else:
-                    self.perform_message_logic(data)
+                    self.on_message(data)
                     try:
                         if self.__check_for_on_message_received:
-                            kce_exception_logger.info('Calling on_message_received callbacks')
                             for msg_receiver in self.__on_message_received:
-                                kwargs = {}
-                                for key in msg_receiver.on_message_received.kwargs:
-                                    kwargs[key] = msg_receiver.kwarg_values[key]
+                                kwargs_to_pass = {}
+                                for key in msg_receiver.kwarg_values:
+                                    kwargs_to_pass[key] = msg_receiver.kwarg_values[key]
 
-                                kce_exception_logger.info('==============================================')
-                                kce_exception_logger.info('Calling callback')
-                                kce_exception_logger.info(data)
-                                kce_exception_logger.info(kwargs)
-                                kce_exception_logger.info(msg_receiver.on_message_received.callback)
                                 msg_receiver.on_message_received.callback(
-                                    data,
                                     self,
-                                    kwargs
+                                    data,
+                                    kwargs_to_pass
                                 )
-                                kce_exception_logger.info('==============================================')
-                        else:
-                            kce_exception_logger.info('==============================================')
-                            kce_exception_logger.info('There are no on_message_received callbacks')
-                            kce_exception_logger.info('==============================================')
-                    except Exception as e:
+
+                    except Exception:
                         kce_exception_logger.exception('an exception occurred while executing callbacks, see below.')
 
-                connection.send(Message(message_type=MessageTypeBase.ACK).json().encode())  # send data to the client
+                connection.send(Message(message_type=MessageTypeBase.ACK).json().encode())  # send msg ack to the client
 
             if clean_outgoing:
                 self.__msg_outgoing_dirty = False
@@ -272,7 +268,7 @@ class SocketServerBase(metaclass=abc.ABCMeta):
             self.__message_loop()
 
     @staticmethod
-    def __get_ip_6(host, port=0):
+    def _get_ip_6(host, port=0):
         # search for all addresses, but take only the v6 ones
         alladdr = socket.getaddrinfo(host, port)
         ip6 = filter(
@@ -280,31 +276,6 @@ class SocketServerBase(metaclass=abc.ABCMeta):
             alladdr
         )
         return list(ip6)[0][4][0]
-
-
-class SocketServer(SocketServerBase):
-    def __init__(
-            self,
-            host_address=socket.gethostname(),
-            port=9999,
-            max_listeners=5,
-            logger=kce_exception_logger,
-            on_message_received=None,
-            on_player_connected=None,
-            on_player_disconnected=None
-    ):
-        super().__init__(
-            host_address,
-            port,
-            max_listeners,
-            logger,
-            on_message_received,
-            on_player_connected,
-            on_player_disconnected
-        )
-
-    def perform_message_logic(self, data: Message):
-        super().perform_message_logic(data)
 
 
 class ChessSocketServer(SocketServer):

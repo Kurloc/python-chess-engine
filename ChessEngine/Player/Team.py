@@ -10,18 +10,20 @@ from ChessEngine.Pydantic.ArbitraryConfig import Config
 from ChessEngine.Tile.TileColors import TileColors
 
 
-class Team(BaseModel):
+class Team:
     color: TileColors
     side: PlayerStartPositions
     team_id: int
 
-    def __init__(self,
-                 color: TileColors,
-                 side: PlayerStartPositions,
-                 team_id: int,
-                 *args,
-                 **kwargs):
-        super().__init__(color=color, side=side, team_id=team_id, *args, **kwargs)
+    def __init__(
+            self,
+            color: TileColors,
+            side: PlayerStartPositions,
+            team_id: int
+    ):
+        self.color = color
+        self.side = side
+        self.team_id = team_id
 
     def __eq__(self, other: Team) -> bool:
         return self.color == other.color and self.side == other.side

@@ -5,11 +5,13 @@ from ChessEngine.Engine import Engine
 from ChessEngine.Pathfinding.Vector2 import Vector2
 from ChessEngine.Player.Player import Player
 from ChessEngine.Player.PlayerPathDict import PlayerPathDict
+from TextualClient.Sockets.PlayerManagement import PlayerManagement
 
 
 class ChessEngineService:
     __board: Board
-    game_running = False
+    _player_management: PlayerManagement
+
     piece_maps = {
         'unicode': {
         "1_1": "♙",
@@ -54,16 +56,15 @@ class ChessEngineService:
         "2_5": "♛",
         "2_6": "♚"
     }
-    player_move: Tuple[Vector2, Vector2] = None
-    current_players_moves: Dict[Tuple[int, int], PlayerPathDict] = {}
     chess_engine: Engine
 
-    def __init__(self):
+    def __init__(self, player_management: PlayerManagement):
         self.__board = Board()
+        self._player_management = player_management
         self.chess_engine = Engine(self.__board)
 
     def start_game(self, players: List[Player]):
-        self.game_running = True
+        self._player_management.game_running.on_next(True)
         self.chess_engine.start_game(
             run_in_background=True,
             players=players,
@@ -71,7 +72,7 @@ class ChessEngineService:
         )
 
     def stop_game(self):
-        self.game_running = False
+        self._player_management.game_running.on_next(False)
         self.chess_engine.stop_game()
 
     @property

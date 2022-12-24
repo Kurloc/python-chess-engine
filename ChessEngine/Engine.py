@@ -80,7 +80,7 @@ class Engine:
     def try_stop_thread(self):
         """Stop the thread, if we get an exception we don't care"""
         try:
-            self.__game_thread.join()
+            self.__game_thread.join(1)
         except Exception as e:
             tb = traceback.format_exc()
             kce_exception_logger.exception(e)

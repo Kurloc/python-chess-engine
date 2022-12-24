@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Self
 
 from TextualClient.Sockets.OnlinePlayer import OnlinePlayer
 
@@ -15,7 +16,7 @@ class PlayerLobby:
         return {'players': return_dict}
 
     @staticmethod
-    def from_dict(incoming_value: dict):
+    def from_dict(incoming_value: dict) -> Self:
         players_dict = incoming_value.get('players', {})
         players = {}
         for player in players_dict:

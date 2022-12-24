@@ -8,11 +8,9 @@ from typing import Self, cast, Tuple
 
 from reactivex.subject import BehaviorSubject
 
-from ChessEngine.Board.AttackResult import AttackResult
 from ChessEngine.Board.Board import Board
 from ChessEngine.Board.BoardState import BoardState
 from ChessEngine.Debugging.setup_logger import kce_exception_logger
-from ChessEngine.Player.IChessEngineUser import PlayerTurnStart
 from ChessEngine.Player.PlayerPathDict import PlayerPathDict
 from ChessEngine.Pydantic.TupleToString import tuple_to_string, string_to_tuple
 from TextualClient.Sockets.ChessMessage import ChessMessage
@@ -176,6 +174,8 @@ class SocketClient:
         disconnect_message = Message(value='\0close_connection\0', message_type=MessageTypeBase.DISCONNECT)
         self.__socket.send(disconnect_message.json().encode())
         self.__socket.close()  # close the connection
+        self.__messaging_thread.join(1)
+        self.__logger.debug('Client has disconnected from host')
 
     @staticmethod
     def __get_ip_6(host, port=0):

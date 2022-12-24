@@ -1,9 +1,9 @@
 from abc import ABCMeta, abstractmethod
 
 
-class TextualOnlinePlayerEventBus(metaclass=ABCMeta):
+class ITextualOnlineService(metaclass=ABCMeta):
     @abstractmethod
-    def on_player_join_lobby(self, player_name: str, player_address: str):
+    def on_player_join_lobby(self, player_name: str, player_address: str, is_local_player: bool):
         pass
 
     @abstractmethod

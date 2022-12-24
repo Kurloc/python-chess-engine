@@ -1,28 +1,18 @@
-from dataclasses import dataclass
 from typing import Union, Dict, cast, Tuple
-
-import pydantic
-from pydantic import BaseModel
 
 from ChessEngine.Pieces.IPiece import IPiece
 from ChessEngine.Pieces.PieceDeserializer import PieceDeserializer
-from ChessEngine.Pydantic.ArbitraryConfig import Config
 from ChessEngine.Pydantic.TupleToString import tuple_to_string, string_to_tuple
 from ChessEngine.Tile.TileColors import TileColors
 from ChessEngine.Pathfinding.Vector2 import Vector2
 
 
-class Tile(BaseModel):
-    class Config:
-        arbitrary_types_allowed = True
-        use_enum_values = True
-
+class Tile:
     piece: Union[IPiece, None]
     position: Vector2
     tile_color: TileColors
 
     def __init__(self, position: Vector2, tile_color: TileColors, piece: IPiece = None):
-        super().__init__(position=position, tile_color=tile_color, piece=piece)
         self.position = position
         self.tile_color = tile_color
         self.piece = piece

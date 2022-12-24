@@ -5,7 +5,7 @@ from textual.widgets import Button, Footer, Header, Input
 
 from ChessEngine.Debugging.setup_logger import kce_exception_logger
 from TextualClient.Sockets.PlayerManagement import PlayerManagement
-from TextualClient.Sockets.TextualGameClientEventBus import TextualGameClientEventBus
+from TextualClient.Sockets.TextualOnlineClientService import TextualOnlineClientService
 from TextualClient.UI.Enums.ScreenKeys import ScreenKeys
 from TextualClient.UI.Screens.Generic.ButtonMenuScreen import ButtonMenuScreen
 from TextualClient.UI.Services.ChessGameSettings import TextualAppSettings
@@ -13,7 +13,7 @@ from TextualClient.UI.Services.ChessGameSettings import TextualAppSettings
 
 class JoinMultiplayerServerScreen(ButtonMenuScreen):
     __player_management: PlayerManagement
-    __game_client_event_bus: TextualGameClientEventBus
+    __game_client_event_bus: TextualOnlineClientService
     __textual_app_settings: TextualAppSettings
     server_ip_port = reactive('')
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
@@ -21,7 +21,7 @@ class JoinMultiplayerServerScreen(ButtonMenuScreen):
     def __init__(
             self,
             player_management: PlayerManagement,
-            game_client_event_bus: TextualGameClientEventBus,
+            game_client_event_bus: TextualOnlineClientService,
             textual_app_settings: TextualAppSettings
     ):
         super().__init__()

@@ -5,17 +5,21 @@ from textual.widget import Widget
 from textual.widgets import Label, Button
 
 from ChessEngine.Pieces.ChessPieces import ChessPieces
-from TextualClient.UI.Services.PieceUpgradeService import PieceUpgradeService
+from TextualClient.Sockets.PlayerManagement import PlayerManagement
 
 
 class PieceUpgrade(Widget):
     """Widget to tell the user they have won."""
-    __piece_upgrade_service: PieceUpgradeService
+    __player_management: PlayerManagement
     selected_piece = Reactive('none')
 
-    def __init__(self, _id: str, piece_upgrade_service: PieceUpgradeService):
+    def __init__(
+            self,
+            _id: str,
+            player_management: PlayerManagement
+    ):
         super().__init__(id=_id)
-        self.__piece_upgrade_service = piece_upgrade_service
+        self.__player_management = player_management
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         # """Event handler called when a button is pressed."""
@@ -26,19 +30,19 @@ class PieceUpgrade(Widget):
         if button_id == 'confirm_button':
             match self.selected_piece:
                 case 'none':
-                    self.__piece_upgrade_service.piece_selection = ChessPieces.NONE
+                    self.__player_management.piece_selection.on_next(ChessPieces.NONE)
                 case 'pawn':
-                    self.__piece_upgrade_service.piece_selection = ChessPieces.PAWN
+                    self.__player_management.piece_selection.on_next(ChessPieces.PAWN)
                 case 'rook':
-                    self.__piece_upgrade_service.piece_selection = ChessPieces.ROOK
+                    self.__player_management.piece_selection.on_next(ChessPieces.ROOK)
                 case 'bishop':
-                    self.__piece_upgrade_service.piece_selection = ChessPieces.BISHOP
+                    self.__player_management.piece_selection.on_next(ChessPieces.BISHOP)
                 case 'knight':
-                    self.__piece_upgrade_service.piece_selection = ChessPieces.KNIGHT
+                    self.__player_management.piece_selection.on_next(ChessPieces.KNIGHT)
                 case 'queen':
-                    self.__piece_upgrade_service.piece_selection = ChessPieces.QUEEN
+                    self.__player_management.piece_selection.on_next(ChessPieces.QUEEN)
                 case 'king':
-                    self.__piece_upgrade_service.piece_selection = ChessPieces.KING
+                    self.__player_management.piece_selection.on_next(ChessPieces.KING)
 
     def watch_selected_piece(self, piece: str):
         """Watch the moves reactive and update when it changes.
